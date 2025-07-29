@@ -4,8 +4,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY dashboard /app
-# No .env copy needed — Render injects env vars
+COPY . /app
 
 RUN pip install streamlit requests python-dotenv pandas
 
