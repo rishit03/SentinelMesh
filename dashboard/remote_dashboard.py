@@ -13,7 +13,7 @@ load_dotenv()
 
 st.title("🛰️ SentinelMesh Remote Dashboard")
 
-API_BASE = "http://backend:8000"
+API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 LOGS_URL = f"{API_BASE}/logs"
 ALERTS_URL = f"{API_BASE}/alerts"
 AGENTS_URL = f"{API_BASE}/agents"
