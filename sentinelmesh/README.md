@@ -1,5 +1,7 @@
 # 🛡️ SentinelMesh
 
+![CI](https://github.com/rishit03/SentinelMesh/actions/workflows/ci.yml/badge.svg)
+
 **SentinelMesh** is a real-time security, policy, and observability mesh for AI agents communicating via the Model Context Protocol (MCP).
 
 ---
