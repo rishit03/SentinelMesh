@@ -1,34 +1,28 @@
-# Byte-compiled / optimized / DLL files
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environments
+*.pyc
+*.pyo
+*.pyd
 .venv/
 env/
-venv/
+.pypi-env/
 
-# Logs and local config
-*.log
-*.env
-*.local
-.logs/
+# Logs & Data
 logs/
+*.db
+*.log
 
 # Streamlit
 .streamlit/
-
-# macOS
-.DS_Store
-
-# Python packaging artifacts
-build/
-dist/
-*.egg-info/
-
-# Jupyter
-.ipynb_checkpoints/
-
-# IDE files
+# VS Code
 .vscode/
-.idea/
+
+# Secrets
+.env
+.env.*
+
+# Docker
+*.egg-info/
+*.tar.gz
+*.whl
+.DS_Store

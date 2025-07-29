@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: sentinelmesh-api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./logs:/app/logs
+    env_file:
+      - .env
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: sentinelmesh-dashboard
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+    env_file:
+      - .env
+    depends_on:
+      - backend

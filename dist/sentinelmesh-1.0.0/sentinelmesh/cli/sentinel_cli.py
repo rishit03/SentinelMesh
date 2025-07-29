@@ -4,9 +4,6 @@ import sys
 import json
 from time import sleep
 from pathlib import Path
-import requests
-import yaml
-from datetime import datetime
 
 # Add project root to path for clean imports
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -16,35 +13,9 @@ from sentinelmesh.monitor.agent_tracker import AgentTracker
 
 LOG_FILE = Path(__file__).resolve().parents[1] / "logs/mcp_traffic.log"
 
-WEBHOOK_CONFIG = Path(__file__).resolve().parents[2] / "config/webhook.yaml"
-
-def load_webhook_settings():
-    if not WEBHOOK_CONFIG.exists():
-        return None
-    with open(WEBHOOK_CONFIG, "r") as f:
-        return yaml.safe_load(f)
-
-def post_alert(message, risk, webhook):
-    payload = {
-        "content": f"""🚨 **SentinelMesh Alert**
-**Sender:** {message['sender']}
-**Receiver:** {message['receiver']}
-**Risk:** {risk}/100
-**Payload:** {message['payload']}"""
-    }
-    try:
-        requests.post(webhook, json=payload)
-    except Exception as e:
-        print(f"⚠️ Failed to send webhook alert: {e}")
-
-
 def tail_log():
     seen = set()
     tracker = AgentTracker()
-    webhook_config = load_webhook_settings()
-    webhook_url = webhook_config.get("webhook_url") if webhook_config else None
-    risk_threshold = webhook_config.get("min_risk_threshold", 100) if webhook_config else 100
-
 
     while True:
         if not LOG_FILE.exists():
@@ -59,14 +30,6 @@ def tail_log():
 
                 try:
                     msg = json.loads(line)
-                    msg["timestamp"] = datetime.utcnow().isoformat()
-                    import requests
-
-                    try:
-                        requests.post("http://localhost:8000/log", json=msg)
-                    except Exception as e:
-                        print("⚠️ Failed to stream to API:", e)
-
                     sender = msg.get("sender", "unknown")
                     receiver = msg.get("receiver", "unknown")
 
@@ -75,11 +38,7 @@ def tail_log():
 
                     # Security rules
                     alerts, risk = check_all_rules(msg)
-                    msg["risk"] = risk  # Attach risk score before sending to API
-                    requests.post("http://localhost:8000/log", json=msg)
                     if alerts:
-                        if webhook_url and risk >= risk_threshold:
-                            post_alert(msg, risk, webhook_url)
                         print(f"\n⚠️ ALERT for message: {sender} ➡️ {receiver}")
                         for alert in alerts:
                             print(f"   → {alert}")

@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sentinelmesh"
+version = "1.0.0"
+description = "A real-time security and policy mesh for MCP-based AI agent communication"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+  { name="Rishit Goel", email="rishit@example.com" }
+]
+dependencies = [
+  "streamlit",
+  "pandas",
+  "pyyaml"
+]
+requires-python = ">=3.7"
+
+[project.scripts]
+sentinelmesh-cli = "sentinelmesh.cli.sentinel_cli:main"
+sentinelmesh-replay = "sentinelmesh.tools.replay_log:main"
