@@ -25,9 +25,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e .
     
-    - name: Verify Streamlit app format (basic)
-      run: |
-        python -m py_compile sentinelmesh/dashboard/app.py
+    - name: Verify Streamlit app format (remote dashboard)
+      run: python -m py_compile dashboard/remote_dashboard.py
+
 
     - name: Run tests
       run: |
