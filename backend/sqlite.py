@@ -1,7 +1,8 @@
 import aiosqlite
 from pathlib import Path
 
-DB_PATH = Path("logs/sentinelmesh.db")
+DB_PATH = "logs/sentinelmesh.db"
+Path("logs").mkdir(parents=True, exist_ok=True)
 
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
