@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY backend /app
 COPY logs /app/logs
-COPY .env /app/.env
+# No .env copy needed — Render injects env vars
 
 RUN pip install fastapi uvicorn aiosqlite python-dotenv
 
