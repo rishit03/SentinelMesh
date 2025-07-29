@@ -1,6 +1,6 @@
 import os
 import yaml
-from sentinelmesh.dashboard.blocklist import load_blocked_agents, save_blocked_agents
+from dashboard.blocklist import load_blocked_agents, save_blocked_agents
 
 TEST_BLOCKLIST_FILE = "tests/test_blocklist.yaml"
 
