@@ -11,7 +11,7 @@ services:
     rootDir: backend
     envVars:
       - key: SENTINELMESH_USER
-        value: rihsit03
+        value: rishit03
       - key: SENTINELMESH_PASS
         value: 12345678
 
@@ -25,7 +25,7 @@ services:
     rootDir: dashboard
     envVars:
       - key: SENTINELMESH_USER
-        value: rishit
+        value: rishit03
       - key: SENTINELMESH_PASS
         value: 12345678
       - key: API_BASE
