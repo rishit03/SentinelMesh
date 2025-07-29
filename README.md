@@ -3,6 +3,8 @@
 ![CI](https://github.com/rishit03/SentinelMesh/actions/workflows/ci.yml/badge.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Python](https://img.shields.io/badge/python-3.7%2B-blue)
+[![PyPI version](https://badge.fury.io/py/sentinelmesh.svg)](https://pypi.org/project/sentinelmesh/)
+
 
 **SentinelMesh** is a real-time security, policy, and observability mesh for AI agents communicating via the Model Context Protocol (MCP).
 
