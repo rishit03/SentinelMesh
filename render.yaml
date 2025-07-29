@@ -11,9 +11,9 @@ services:
     rootDir: backend
     envVars:
       - key: SENTINELMESH_USER
-        value: sentinel
+        value: rihsit03
       - key: SENTINELMESH_PASS
-        value: mesh123
+        value: 12345678
 
   - name: sentinelmesh-dashboard
     type: web
@@ -25,8 +25,8 @@ services:
     rootDir: dashboard
     envVars:
       - key: SENTINELMESH_USER
-        value: sentinel
+        value: rishit
       - key: SENTINELMESH_PASS
-        value: mesh123
+        value: 12345678
       - key: API_BASE
         value: https://sentinelmesh-api.onrender.com  # 🔁 Update this after API deploys
