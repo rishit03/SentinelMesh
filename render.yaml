@@ -1,0 +1,32 @@
+# render.yaml — monorepo with two Docker services
+
+services:
+  - name: sentinelmesh-api
+    type: web
+    env: docker
+    repo: https://github.com/rishit03/SentinelMesh
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: backend
+    envVars:
+      - key: SENTINELMESH_USER
+        value: sentinel
+      - key: SENTINELMESH_PASS
+        value: mesh123
+
+  - name: sentinelmesh-dashboard
+    type: web
+    env: docker
+    repo: https://github.com/rishit03/SentinelMesh
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: dashboard
+    envVars:
+      - key: SENTINELMESH_USER
+        value: sentinel
+      - key: SENTINELMESH_PASS
+        value: mesh123
+      - key: API_BASE
+        value: https://sentinelmesh-api.onrender.com  # 🔁 Update this after API deploys
