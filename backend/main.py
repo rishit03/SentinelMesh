@@ -17,24 +17,25 @@ from sqlite import (
 from sqlite import get_agent_stats
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-import secrets
+from backend.auth import get_current_org
+# from fastapi.security import HTTPBasic, HTTPBasicCredentials
+# import secrets
 
-security = HTTPBasic()
+# security = HTTPBasic()
 
-USERNAME = os.getenv("SENTINELMESH_USER", "default_user")
-PASSWORD = os.getenv("SENTINELMESH_PASS", "default_pass")
+# USERNAME = os.getenv("SENTINELMESH_USER", "default_user")
+# PASSWORD = os.getenv("SENTINELMESH_PASS", "default_pass")
 
 
-def verify_auth(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, USERNAME)
-    correct_password = secrets.compare_digest(credentials.password, PASSWORD)
-    if not (correct_username and correct_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="🚫 Unauthorized",
-            headers={"WWW-Authenticate": "Basic"},
-        )
+# def verify_auth(credentials: HTTPBasicCredentials = Depends(security)):
+#     correct_username = secrets.compare_digest(credentials.username, USERNAME)
+#     correct_password = secrets.compare_digest(credentials.password, PASSWORD)
+#     if not (correct_username and correct_password):
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="🚫 Unauthorized",
+#             headers={"WWW-Authenticate": "Basic"},
+#         )
 
 
 
@@ -46,8 +47,12 @@ async def startup_event():
     print("✅ SQLite initialized")
 
 @app.post("/log")
-async def receive_log(request: Request, creds: HTTPBasicCredentials = Depends(verify_auth)):
+# async def receive_log(request: Request, creds: HTTPBasicCredentials = Depends(verify_auth)):
+async def receive_log(request: Request, org=Depends(get_current_org)):
+
     data = await request.json()
+    data["org"] = org
+
     log_id = str(uuid.uuid4())
     data["id"] = log_id
     data["timestamp"] = data.get("timestamp") or datetime.now(timezone.utc).isoformat()
@@ -62,17 +67,20 @@ async def receive_log(request: Request, creds: HTTPBasicCredentials = Depends(ve
 
 
 @app.get("/logs")
-async def logs(creds: HTTPBasicCredentials = Depends(verify_auth)):
+# async def logs(creds: HTTPBasicCredentials = Depends(verify_auth)):
+async def logs(org=Depends(get_current_org)):
     logs = await get_logs(min_risk=0)
-    return {"logs": logs}
+    return {"logs": logs, "org": org}
 
 @app.get("/alerts")
-async def alerts(min_risk: int = Query(80, ge=0, le=100), creds: HTTPBasicCredentials = Depends(verify_auth)):
+# async def alerts(min_risk: int = Query(80, ge=0, le=100), creds: HTTPBasicCredentials = Depends(verify_auth)):
+async def alerts(min_risk: int = Query(80, ge=0, le=100), org=Depends(get_current_org)):
     alerts = await get_logs(min_risk)
     return {"alerts": alerts}
 
 @app.get("/agents")
-async def agent_summary(creds: HTTPBasicCredentials = Depends(verify_auth)):
+# async def agent_summary(creds: HTTPBasicCredentials = Depends(verify_auth)):
+async def agent_summary(org=Depends(get_current_org)):
     return {"agents": await get_agent_stats()}
 
 
