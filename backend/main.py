@@ -17,7 +17,7 @@ from sqlite import (
 )
 
 # 🔐 Token-based auth
-from backend.auth import get_current_org  # ✅ use token-based auth now
+from auth import get_current_org  # ✅ use token-based auth now
 
 app = FastAPI()
 
