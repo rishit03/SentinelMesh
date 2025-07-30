@@ -51,7 +51,11 @@ async def receive_log(request: Request, creds: HTTPBasicCredentials = Depends(ve
     log_id = str(uuid.uuid4())
     data["id"] = log_id
     data["timestamp"] = data.get("timestamp") or datetime.now(timezone.utc).isoformat()
-    data["risk"] = int(data.get("risk", 0))  # ✅ critical
+    from rules.rule_engine import check_all_rules  # if not already imported
+
+    alerts, risk = check_all_rules(data)
+    data["risk"] = risk
+
     data["received_at"] = datetime.now(timezone.utc).isoformat()
     await insert_log(log_id, data)
     return {"status": "received", "id": log_id}
