@@ -1,4 +1,3 @@
-import pytest
 from backend.rules.rule_engine import check_all_rules
 
 def test_prompt_injection_detection():
