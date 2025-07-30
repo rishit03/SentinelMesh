@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY . /app
 
-RUN pip install fastapi uvicorn aiosqlite python-dotenv
+RUN pip install fastapi uvicorn aiosqlite python-dotenv pyyaml
 
 EXPOSE 8000
 
