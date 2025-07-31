@@ -9,11 +9,7 @@ services:
     plan: free
     branch: main
     rootDir: backend
-    envVars:
-      - key: SENTINELMESH_USER
-        value: rishit03
-      - key: SENTINELMESH_PASS
-        value: 12345678
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 8000
 
   - name: sentinelmesh-dashboard
     type: web
