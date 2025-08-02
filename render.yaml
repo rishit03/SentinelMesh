@@ -26,3 +26,16 @@ services:
         value: 12345678
       - key: API_BASE
         value: https://sentinelmesh-api.onrender.com  # 🔁 Update this after API deploys
+  
+  - type: web
+    name: your-backend-service-name # Replace with your actual backend service name
+    env: python
+    buildCommand: |
+      # Install Python dependencies
+      pip install -r requirements.txt
+      # Navigate to the frontend directory and build the React app
+      cd frontend/sentinelmesh-dashboard && npm install --legacy-peer-deps && npm run build
+      # Go back to the root of the backend service if necessary for subsequent commands
+      cd ../../..
+      # Any other backend build commands
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
