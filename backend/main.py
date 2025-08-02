@@ -1,5 +1,7 @@
 from fastapi import FastAPI, Request, Query, Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from datetime import datetime, timezone
 import uuid
 from dotenv import load_dotenv
@@ -17,9 +19,31 @@ from sqlite import (
 )
 
 # 🔐 Token-based auth
-from auth import get_current_org  # ✅ use token-based auth now
+from auth import get_current_org
 
 app = FastAPI()
+
+# Configure CORS - UPDATED VERSION TO FIX 405 OPTIONS ERROR
+origins = [
+    "http://localhost:5173",  # Allow your local React development server
+    "https://pgncwesl.manus.space",  # Allow the deployed React app
+    "http://localhost:3000",  # Alternative React dev server port
+    # Add any other domains where your frontend might be hosted
+    # e.g., "https://your-custom-frontend-domain.com"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicitly include OPTIONS
+    allow_headers=["*"],
+)
+
+# Mount static files (React build output)
+# Update this path to point to your React app's dist folder
+# Ensure this path is correct relative to where your FastAPI app runs
+app.mount("/static", StaticFiles(directory="frontend/sentinelmesh-dashboard/dist"), name="static")
 
 @app.on_event("startup")
 async def startup_event():
@@ -61,3 +85,12 @@ async def alerts(min_risk: int = Query(80, ge=0, le=100), org=Depends(get_curren
 async def stats(org=Depends(get_current_org)):
     stats = await get_agent_stats()
     return {"stats": stats, "org": org}
+
+# Serve React app for all non-API routes
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    # Only serve React app for non-API routes
+    if not full_path.startswith(("logs", "alerts", "stats", "log", "static")):
+        return FileResponse("frontend/sentinelmesh-dashboard/dist/index.html")
+    else:
+        raise HTTPException(status_code=404, detail="Not found")
