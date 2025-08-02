@@ -25,12 +25,14 @@ app = FastAPI()
 
 # Configure CORS - UPDATED VERSION TO FIX 405 OPTIONS ERROR
 origins = [
-    "http://localhost:5173",  # Allow your local React development server
-    "https://pgncwesl.manus.space",  # Allow the deployed React app
-    "http://localhost:3000",  # Alternative React dev server port
+    "http://localhost:5173",  # For local React development
+    "http://localhost:3000",  # Another common local React dev server port
+    "https://pgncwesl.manus.space", # The React app I deployed for you (if still relevant )
+    "https://sentinelmesh-frontend.onrender.com", # **YOUR NEWLY DEPLOYED REACT FRONTEND URL**
     # Add any other domains where your frontend might be hosted
     # e.g., "https://your-custom-frontend-domain.com"
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
