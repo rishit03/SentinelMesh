@@ -1,15 +1,25 @@
-# render.yaml — monorepo with two Docker services
+# render.yaml — monorepo with backend API and dashboard services
 
 services:
   - name: sentinelmesh-api
     type: web
-    env: docker
+    env: python
     repo: https://github.com/rishit03/SentinelMesh
     region: oregon
     plan: free
     branch: main
     rootDir: backend
-    startCommand: uvicorn main:app --host 0.0.0.0 --port 8000
+    buildCommand: |
+      # Install Python dependencies
+      pip install -r requirements.txt
+      # Navigate to the frontend directory (relative to repo root) and build the React app
+      cd ../frontend/sentinelmesh-dashboard && npm install --legacy-peer-deps && npm run build
+      # Copy the built React app to the backend directory for serving
+      cp -r dist ../../backend/static_frontend
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SENTINELMESH_TOKEN
+        value: rishit-org-token  # Your API token
 
   - name: sentinelmesh-dashboard
     type: web
@@ -25,17 +35,4 @@ services:
       - key: SENTINELMESH_PASS
         value: 12345678
       - key: API_BASE
-        value: https://sentinelmesh-api.onrender.com  # 🔁 Update this after API deploys
-  
-  - type: web
-    name: your-backend-service-name # Replace with your actual backend service name
-    env: python
-    buildCommand: |
-      # Install Python dependencies
-      pip install -r requirements.txt
-      # Navigate to the frontend directory and build the React app
-      cd frontend/sentinelmesh-dashboard && npm install --legacy-peer-deps && npm run build
-      # Go back to the root of the backend service if necessary for subsequent commands
-      cd ../../..
-      # Any other backend build commands
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+        value: https://sentinelmesh-api.onrender.com

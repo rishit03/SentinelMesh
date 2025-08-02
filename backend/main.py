@@ -43,7 +43,7 @@ app.add_middleware(
 # Mount static files (React build output)
 # Update this path to point to your React app's dist folder
 # Ensure this path is correct relative to where your FastAPI app runs
-app.mount("/static", StaticFiles(directory="frontend/sentinelmesh-dashboard/dist"), name="static")
+app.mount("/static", StaticFiles(directory="static_frontend"), name="static")
 
 @app.on_event("startup")
 async def startup_event():
@@ -91,6 +91,6 @@ async def stats(org=Depends(get_current_org)):
 async def serve_react_app(full_path: str):
     # Only serve React app for non-API routes
     if not full_path.startswith(("logs", "alerts", "stats", "log", "static")):
-        return FileResponse("frontend/sentinelmesh-dashboard/dist/index.html")
+        return FileResponse("static_frontend/index.html")
     else:
         raise HTTPException(status_code=404, detail="Not found")
