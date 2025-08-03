@@ -2,6 +2,7 @@
 
 import os
 import uuid
+import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
@@ -21,6 +22,10 @@ from models import (
     HealthResponse,
     ErrorResponse,
 )
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Load .env values
 load_dotenv()
@@ -72,16 +77,16 @@ if os.path.exists(STATIC_DIR):
         StaticFiles(directory=STATIC_DIR),
         name="static"
     )
-    print(f"✅ Static files mounted from {STATIC_DIR}")
+    logger.info(f"✅ Static files mounted from {STATIC_DIR}")
 else:
-    print(f"⚠️  Static directory {STATIC_DIR} not found - React frontend not available")
+    logger.warning(f"⚠️  Static directory {STATIC_DIR} not found - React frontend not available")
 
 
 @app.on_event("startup")
 async def startup_event():
     """Initialize the database on startup."""
     await init_db()
-    print("✅ SQLite initialized")
+    logger.info("✅ SQLite initialized")
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -129,6 +134,7 @@ async def receive_log(
             alerts=alerts
         )
     except Exception as e:
+        logger.exception(f"Error processing log in receive_log: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to process log: {str(e)}"
@@ -152,6 +158,7 @@ async def get_all_logs(org: str = Depends(get_current_org)) -> LogsResponse:
             per_page=50
         )
     except Exception as e:
+        logger.exception(f"Error retrieving logs in get_all_logs: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to retrieve logs: {str(e)}"
@@ -181,6 +188,7 @@ async def get_alerts(
             min_risk=min_risk
         )
     except Exception as e:
+        logger.exception(f"Error retrieving alerts in get_alerts: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to retrieve alerts: {str(e)}"
@@ -201,6 +209,7 @@ async def get_statistics(
         stats = await get_agent_stats()
         return StatsResponse(stats=stats, org=org)
     except Exception as e:
+        logger.exception(f"Error retrieving statistics in get_statistics: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to retrieve statistics: {str(e)}"
@@ -213,6 +222,7 @@ async def http_exception_handler(
     exc: HTTPException
  ) -> JSONResponse:
     """Handle HTTP exceptions with structured error responses."""
+    logger.error(f"HTTPException: {exc.status_code} - {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
@@ -230,6 +240,7 @@ async def general_exception_handler(
     exc: Exception
 ) -> JSONResponse:
     """Handle general exceptions with structured error responses."""
+    logger.exception(f"Unhandled exception: {exc}")
     return JSONResponse(
         status_code=500,
         content=ErrorResponse(
