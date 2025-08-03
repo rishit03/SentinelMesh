@@ -1,14 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer as RechartsResponsiveContainer, // Renamed to avoid conflict
   LineChart,
   Line,
   PieChart,
@@ -20,10 +20,10 @@ import {
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
 
-const ChartWidget = ({ 
-  title, 
-  description, 
-  icon: Icon, 
+const ChartWidget = ({
+  title,
+  description,
+  icon: Icon,
   chartType = 'bar',
   data = [],
   dataKey,
@@ -35,7 +35,7 @@ const ChartWidget = ({
     switch (chartType) {
       case 'bar':
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <RechartsResponsiveContainer width="100%" height={height}>
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey={nameKey} />
@@ -43,12 +43,12 @@ const ChartWidget = ({
               <Tooltip />
               <Bar dataKey={dataKey} fill="#8b5cf6" />
             </BarChart>
-          </ResponsiveContainer>
+          </RechartsResponsiveContainer>
         );
-      
+
       case 'line':
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <RechartsResponsiveContainer width="100%" height={height}>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey={nameKey} />
@@ -56,12 +56,12 @@ const ChartWidget = ({
               <Tooltip />
               <Line type="monotone" dataKey={dataKey} stroke="#8b5cf6" strokeWidth={2} />
             </LineChart>
-          </ResponsiveContainer>
+          </RechartsResponsiveContainer>
         );
-      
+
       case 'area':
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <RechartsResponsiveContainer width="100%" height={height}>
             <AreaChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey={nameKey} />
@@ -69,12 +69,12 @@ const ChartWidget = ({
               <Tooltip />
               <Area type="monotone" dataKey={dataKey} stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.3} />
             </AreaChart>
-          </ResponsiveContainer>
+          </RechartsResponsiveContainer>
         );
-      
+
       case 'pie':
         return (
-          <ResponsiveContainer width="100%" height={height}>
+          <RechartsResponsiveContainer width="100%" height={height}>
             <PieChart>
               <Pie
                 data={data}
@@ -92,9 +92,9 @@ const ChartWidget = ({
               </Pie>
               <Tooltip />
             </PieChart>
-          </ResponsiveContainer>
+          </RechartsResponsiveContainer>
         );
-      
+
       default:
         return <div className="flex items-center justify-center h-full text-slate-500">Unsupported chart type</div>;
     }
@@ -139,4 +139,3 @@ const ChartWidget = ({
 };
 
 export default ChartWidget;
-
