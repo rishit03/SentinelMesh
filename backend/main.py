@@ -57,15 +57,21 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
- )
-
-# Mount static files (React build output)
-# Update this path to point to your React app\'s dist folder
-app.mount(
-    "/static",
-    StaticFiles(directory="frontend/sentinelmesh-dashboard/dist"),
-    name="static"
 )
+
+# Conditionally mount static files (React build output) if directory exists
+STATIC_DIR = "frontend/sentinelmesh-dashboard/dist"
+STATIC_INDEX = os.path.join(STATIC_DIR, "index.html")
+
+if os.path.exists(STATIC_DIR):
+    app.mount(
+        "/static",
+        StaticFiles(directory=STATIC_DIR),
+        name="static"
+    )
+    print(f"✅ Static files mounted from {STATIC_DIR}")
+else:
+    print(f"⚠️  Static directory {STATIC_DIR} not found - React frontend not available")
 
 
 @app.on_event("startup")
@@ -192,7 +198,7 @@ async def get_statistics(
 async def http_exception_handler(
     request: Request,
     exc: HTTPException
- ) -> JSONResponse:
+) -> JSONResponse:
     """Handle HTTP exceptions with structured error responses."""
     return JSONResponse(
         status_code=exc.status_code,
@@ -220,7 +226,7 @@ async def general_exception_handler(
     )
 
 
-# Serve React app for all non-API routes
+# Serve React app for all non-API routes (only if React files exist)
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
     """
@@ -230,9 +236,20 @@ async def serve_react_app(full_path: str):
     client-side routing while preserving API functionality.
     """
     # Only serve React app for non-API routes
-    api_routes = ("logs", "alerts", "stats", "log", "static", "health", "docs")
+    api_routes = ("logs", "alerts", "stats", "log", "static", "health", "docs", "redoc")
     if not full_path.startswith(api_routes):
-        return FileResponse("frontend/sentinelmesh-dashboard/dist/index.html")
+        if os.path.exists(STATIC_INDEX):
+            return FileResponse(STATIC_INDEX)
+        else:
+            # If React frontend is not available, return a simple message
+            return JSONResponse(
+                content={
+                    "message": "SentinelMesh API is running",
+                    "docs": "/docs",
+                    "health": "/health",
+                    "frontend": "React frontend not available in this deployment"
+                }
+            )
     else:
         raise HTTPException(status_code=404, detail="Not found")
 
@@ -240,3 +257,5 @@ async def serve_react_app(full_path: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+

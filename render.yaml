@@ -1,4 +1,4 @@
-# render.yaml — monorepo with backend API and dashboard services
+# render.yaml — simplified version focusing on API first
 
 services:
   - name: sentinelmesh-api
@@ -12,24 +12,17 @@ services:
     buildCommand: |
       # Install Python dependencies
       pip install -r requirements.txt
-      # Navigate to the frontend directory (relative to repo root ) and build the React app
-      cd ../frontend/sentinelmesh-dashboard && npm install --legacy-peer-deps && npm run build
-      # Move the built React app's dist folder to the correct location relative to backend
-      # The 'backend' service's rootDir is 'backend', so 'frontend/sentinelmesh-dashboard/dist' 
-      # needs to be created relative to 'backend/'
-      mkdir -p ../backend/frontend/sentinelmesh-dashboard
-      mv dist ../backend/frontend/sentinelmesh-dashboard/
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: SENTINELMESH_TOKEN
         value: rishit-org-token  # Your API token
       - key: DATABASE_URL
-        value: sqlite:///./sentinelmesh.db # Ensure this is correct for Render
+        value: sqlite:///./sentinelmesh.db
       - key: ENVIRONMENT
         value: production
     healthCheckPath: /health
 
-  - name: sentinelmesh-dashboard # Keep this service if you still want to deploy the Streamlit dashboard
+  - name: sentinelmesh-dashboard # Keep this service for the Streamlit dashboard
     type: web
     env: docker
     repo: https://github.com/rishit03/SentinelMesh
@@ -43,4 +36,5 @@ services:
       - key: SENTINELMESH_PASS
         value: 12345678
       - key: API_BASE
-        value: https://sentinelmesh-api.onrender.com # Ensure this points to your deployed API
+        value: https://sentinelmesh-api.onrender.com
+
