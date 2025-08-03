@@ -10,6 +10,7 @@ from fastapi import FastAPI, Request, Query, Depends, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from rules.rule_engine import check_all_rules
 
 from models import (
     LogEntry,
@@ -115,9 +116,6 @@ async def receive_log(
         ).isoformat()
         data["received_at"] = datetime.now(timezone.utc).isoformat()
         data["org"] = org  # Tag with org
-
-        # Import rule engine here (dynamic)
-        from rules.rule_engine import check_all_rules
         alerts, risk = check_all_rules(data)
         data["risk"] = risk
 
