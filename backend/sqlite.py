@@ -1,9 +1,13 @@
 from pathlib import Path
+import logging
 
 import aiosqlite
 
 DB_PATH = "logs/sentinelmesh.db"
 Path("logs").mkdir(parents=True, exist_ok=True)
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 async def init_db():
@@ -17,12 +21,14 @@ async def init_db():
                 context TEXT,
                 payload TEXT,
                 timestamp TEXT,
-                received_at TEXT,
-                org TEXT,
+                received_at TEXT,  -- Added
+                org TEXT,          -- Added
                 risk INTEGER
             )
         """
         )
+        
+        # Create users table
         await db.execute(
             """
             CREATE TABLE IF NOT EXISTS users (
@@ -54,8 +60,8 @@ async def insert_log(log_id, data):
                 data.get("context"),
                 data.get("payload"),
                 data.get("timestamp"),
-                data.get("received_at"),
-                data.get("org"),
+                data.get("received_at"),  # Added
+                data.get("org"),          # Added
                 int(data.get("risk", 0)),
             ),
         )
@@ -98,26 +104,31 @@ async def get_agent_stats():
         return [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
 
 
+# User management functions
 async def create_user(username: str, hashed_password: str, org: str):
+    logger.debug(f"Creating user: {username} with hashed_password: {hashed_password}")
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "INSERT INTO users (username, hashed_password, org) VALUES (?, ?, ?)",
-            (username, hashed_password, org),
+            (username, hashed_password, org)
         )
         await db.commit()
+        logger.debug(f"User {username} created successfully.")
 
 
 async def get_user_by_username(username: str):
+    logger.debug(f"Retrieving user: {username}")
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             "SELECT username, hashed_password, org FROM users WHERE username = ?",
-            (username,),
+            (username,)
         )
-        user_data = await cursor.fetchone()
-        if user_data:
-            return {
-                "username": user_data[0],
-                "hashed_password": user_data[1],
-                "org": user_data[2],
-            }
-        return None
+        row = await cursor.fetchone()
+        if row:
+            user_data = dict(zip([column[0] for column in cursor.description], row))
+            logger.debug(f"User {username} found: {user_data}")
+            return user_data
+        else:
+            logger.debug(f"User {username} not found.")
+            return None
+

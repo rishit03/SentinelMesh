@@ -34,7 +34,7 @@ from models import (
 )
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s') # Changed to DEBUG
 logger = logging.getLogger(__name__)
 
 # Load .env values
@@ -60,10 +60,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # Helper functions for authentication
 def verify_password(plain_password, hashed_password):
+    logger.debug(f"Verifying password: Plain=\"{plain_password}\" Hashed=\"{hashed_password}\"")
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password):
-    return pwd_context.hash(password)
+    hashed_password = pwd_context.hash(password)
+    logger.debug(f"Generated hash for password: {hashed_password}")
+    return hashed_password
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -78,15 +81,21 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
 async def get_user(username: str):
     user_data = await get_user_by_username(username)
     if user_data:
+        logger.debug(f"User retrieved from DB: {user_data.get("username")} Hashed_password: {user_data.get("hashed_password")}")
         return UserInDB(**user_data)
+    logger.debug(f"User {username} not found in DB.")
     return None
 
 async def authenticate_user(username: str, password: str):
+    logger.debug(f"Attempting to authenticate user: {username}")
     user = await get_user(username)
     if not user:
+        logger.debug(f"Authentication failed: User {username} not found.")
         return False
     if not verify_password(password, user.hashed_password):
+        logger.debug(f"Authentication failed: Password mismatch for user {username}.")
         return False
+    logger.debug(f"Authentication successful for user: {username}")
     return user
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -383,7 +392,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         )
         return {"access_token": access_token, "token_type": "bearer"}
     except HTTPException as http_exc:
-        # Re-raise HTTPException directly so it's handled by http_exception_handler
+        # Re-raise HTTPException directly so it\'s handled by http_exception_handler
         raise http_exc
     except Exception as e:
         logger.exception(f"Error during token generation: {e}")
@@ -424,3 +433,7 @@ async def serve_react_app(full_path: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+
+
