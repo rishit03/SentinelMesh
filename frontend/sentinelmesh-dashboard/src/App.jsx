@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence, useAnimation } from 'framer-motion'
-import { 
-  Satellite, 
-  Shield, 
-  Activity, 
-  AlertTriangle, 
-  Download, 
-  RefreshCw, 
-  Users, 
+import {
+  Satellite,
+  Shield,
+  Activity,
+  AlertTriangle,
+  Download,
+  RefreshCw,
+  Users,
   BarChart3,
   Clock,
   Filter,
@@ -35,14 +35,14 @@ import { Badge } from '@/components/ui/badge.jsx'
 import { Input } from '@/components/ui/input.jsx'
 import { Slider } from '@/components/ui/slider.jsx'
 import { Switch } from '@/components/ui/switch.jsx'
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer as RechartsResponsiveContainer, // Renamed to avoid conflict
   LineChart,
   Line,
   PieChart,
