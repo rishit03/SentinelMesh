@@ -34,7 +34,7 @@ from models import (
 )
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format= '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 # Load .env values
@@ -348,32 +348,49 @@ async def general_exception_handler(
 # User registration endpoint
 @app.post("/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
-    existing_user = await get_user(user.username)
-    if existing_user:
+    try:
+        existing_user = await get_user(user.username)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already registered"
+            )
+        hashed_password = get_password_hash(user.password)
+        await create_user(user.username, hashed_password, user.org)
+        return UserResponse(username=user.username, org=user.org)
+    except Exception as e:
+        logger.exception(f"Error during user registration: {e}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
+            status_code=500,
+            detail=f"Registration failed: {str(e)}"
         )
-    hashed_password = get_password_hash(user.password)
-    await create_user(user.username, hashed_password, user.org)
-    return UserResponse(username=user.username, org=user.org)
 
 # User login endpoint
 @app.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user = await authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        user = await authenticate_user(form_data.username, form_data.password)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username, "org": user.org},
+            expires_delta=access_token_expires
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "org": user.org},
-        expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+        return {"access_token": access_token, "token_type": "bearer"}
+    except HTTPException as http_exc:
+        # Re-raise HTTPException directly so it's handled by http_exception_handler
+        raise http_exc
+    except Exception as e:
+        logger.exception(f"Error during token generation: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Token generation failed: {str(e)}"
+        )
 
 
 # Serve React app for all non-API routes (only if React files exist)
