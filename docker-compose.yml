@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+  # FastAPI Backend Service
   backend:
     build:
       context: .
@@ -10,17 +11,89 @@ services:
       - "${API_PORT:-8000}:8000"
     volumes:
       - ./logs:/app/logs
+      - ./backend:/app
+    environment:
+      - SENTINELMESH_TOKEN=${SENTINELMESH_TOKEN:rishit-org-token}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./sentinelmesh.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000}
     env_file:
       - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - sentinelmesh-network
 
-  dashboard:
+  # React Frontend Service (Development)
+  frontend:
     build:
-      context: .
-      dockerfile: dashboard/Dockerfile
-    container_name: sentinelmesh-dashboard
+      context: ./frontend/sentinelmesh-dashboard
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: sentinelmesh-frontend
     ports:
-      - "${DASHBOARD_PORT:-8501}:8501"
+      - "${FRONTEND_PORT:-5173}:5173"
+    volumes:
+      - ./frontend/sentinelmesh-dashboard:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE=${VITE_API_BASE:-http://localhost:8000}
+      - SENTINELMESH_TOKEN=${SENTINELMESH_TOKEN:rishit-org-token}
     env_file:
       - .env
     depends_on:
       - backend
+    restart: unless-stopped
+    networks:
+      - sentinelmesh-network
+
+  # Legacy Streamlit Dashboard (Optional - for comparison)
+  dashboard-legacy:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: sentinelmesh-dashboard-legacy
+    ports:
+      - "${DASHBOARD_PORT:-8501}:8501"
+    environment:
+      - SENTINELMESH_USER=${SENTINELMESH_USER:-rishit03}
+      - SENTINELMESH_PASS=${SENTINELMESH_PASS:-12345678}
+      - API_BASE=${API_BASE:-http://backend:8000}
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - sentinelmesh-network
+    profiles:
+      - legacy
+
+  # Database Service (Optional - for future PostgreSQL support)
+  database:
+    image: postgres:15-alpine
+    container_name: sentinelmesh-db
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-sentinelmesh}
+      - POSTGRES_USER=${POSTGRES_USER:-sentinelmesh}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-sentinelmesh}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    restart: unless-stopped
+    networks:
+      - sentinelmesh-network
+    profiles:
+      - postgres
+
+networks:
+  sentinelmesh-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
