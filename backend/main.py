@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, Query, Depends, HTTPException
+from fastapi import FastAPI, Request, Query, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -101,6 +101,24 @@ async def health_check():
     )
 
 
+# WebSocket management
+active_connections: List[WebSocket] = []
+
+@app.websocket("/ws/logs")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    active_connections.append(websocket)
+    try:
+        while True:
+            # Keep the connection alive, wait for messages (or just pass)
+            await websocket.receive_text() 
+    except WebSocketDisconnect:
+        active_connections.remove(websocket)
+        logger.info("WebSocket disconnected")
+    except Exception as e:
+        logger.exception(f"WebSocket error: {e}")
+
+
 @app.post("/log", response_model=LogResponse)
 async def receive_log(
     request: Request,
@@ -126,6 +144,11 @@ async def receive_log(
 
         await insert_log(log_id, data)
         
+        # Broadcast new log to all active WebSocket connections
+        log_entry_for_ws = LogEntry(**data).dict() # Convert dict to LogEntry model for consistent output
+        for connection in active_connections:
+            await connection.send_json(log_entry_for_ws)
+
         # Corrected response to match LogResponse model
         return LogResponse(
             message="Log received and processed successfully",
@@ -262,7 +285,7 @@ async def serve_react_app(full_path: str):
     client-side routing while preserving API functionality.
     """
     # Only serve React app for non-API routes
-    api_routes = ("logs", "alerts", "stats", "log", "static", "health", "docs", "redoc")
+    api_routes = ("logs", "alerts", "stats", "log", "static", "health", "docs", "redoc", "ws")
     if not full_path.startswith(api_routes):
         if os.path.exists(STATIC_INDEX):
             return FileResponse(STATIC_INDEX)
@@ -283,3 +306,5 @@ async def serve_react_app(full_path: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
