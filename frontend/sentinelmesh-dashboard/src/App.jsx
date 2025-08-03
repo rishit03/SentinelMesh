@@ -24,7 +24,9 @@ import {
   Maximize2,
   Minimize2,
   Eye,
-  EyeOff
+  EyeOff,
+  LogOut,
+  User
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -51,14 +53,15 @@ import {
 } from 'recharts'
 import AnimatedCounter from './components/AnimatedCounter.jsx'
 import StatusIndicator from './components/StatusIndicator.jsx'
+import Login from './Login.jsx'
+import Register from './Register.jsx'
+import { AuthProvider, useAuth } from './AuthContext.jsx'
 import './App.css'
-
-const API_BASE = import.meta.env.VITE_API_BASE || "https://sentinelmesh-api.onrender.com"
-const API_TOKEN = import.meta.env.VITE_SENTINELMESH_TOKEN || "rishit-org-token"
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444']
 
-function App() {
+function Dashboard() {
+  const { user, logout, authenticatedFetch, API_BASE } = useAuth()
   const [logs, setLogs] = useState([])
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(false)
@@ -80,9 +83,7 @@ function App() {
 
   const fetchData = async (url) => {
     try {
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${API_TOKEN}` }
-      })
+      const response = await authenticatedFetch(url)
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       return await response.json()
     } catch (error) {
@@ -119,7 +120,7 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }, [minRisk, controls])
+  }, [minRisk, controls, authenticatedFetch, API_BASE])
 
   useEffect(() => {
     // WebSocket connection setup
@@ -164,7 +165,7 @@ function App() {
     return () => {
       ws.close();
     };
-  }, []); // Empty dependency array means this runs once on mount
+  }, [API_BASE]); // Empty dependency array means this runs once on mount
 
   useEffect(() => {
     loadData()
@@ -304,6 +305,17 @@ function App() {
             </motion.div>
 
             <div className="flex items-center space-x-4">
+              {/* User Info */}
+              <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-2">
+                <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  {user?.username}
+                </span>
+                <Badge variant="outline" className="text-xs">
+                  {user?.org}
+                </Badge>
+              </div>
+
               {/* Settings Panel */}
               <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-2">
                 <motion.div 
@@ -358,6 +370,17 @@ function App() {
                   <RefreshCw className="h-4 w-4 mr-2" />
                 </motion.div>
                 Refresh
+              </Button>
+
+              {/* Logout Button */}
+              <Button
+                onClick={logout}
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
               </Button>
             </div>
           </div>
@@ -471,13 +494,13 @@ function App() {
                         animate={{ opacity: 1, y: 0 }}
                         className="text-xs text-green-200 mt-1"
                       >
-                        All systems operational
+                        Across {user?.org}
                       </motion.p>
                     )}
                   </div>
                   <motion.div
-                    animate={hoveredCard === 'agents' ? { y: [0, -5, 0] } : {}}
-                    transition={{ duration: 0.5 }}
+                    animate={hoveredCard === 'agents' ? { y: [-2, 2, -2] } : {}}
+                    transition={{ duration: 1, repeat: hoveredCard === 'agents' ? Infinity : 0 }}
                   >
                     <Users className="h-8 w-8 text-green-200" />
                   </motion.div>
@@ -491,7 +514,7 @@ function App() {
           </motion.div>
 
           <motion.div
-            onHoverStart={() => setHoveredCard('risk')}
+            onHoverStart={() => setHoveredCard('status')}
             onHoverEnd={() => setHoveredCard(null)}
             whileHover={{ y: -5, scale: 1.02 }}
             transition={{ type: "spring", stiffness: 300 }}
@@ -500,25 +523,19 @@ function App() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-purple-100 text-sm font-medium">Avg. Risk Score</p>
-                    <p className="text-3xl font-bold">
-                      <AnimatedCounter value={logs.length > 0 ? (logs.reduce((sum, log) => sum + log.risk, 0) / logs.length).toFixed(1) : 0} />
+                    <p className="text-purple-100 text-sm font-medium">System Status</p>
+                    <p className="text-lg font-bold capitalize">
+                      {getSystemStatus()}
                     </p>
-                    {hoveredCard === 'risk' && (
-                      <motion.p 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-xs text-purple-200 mt-1"
-                      >
-                        Overall system risk
-                      </motion.p>
-                    )}
+                    <p className="text-xs text-purple-200 mt-1">
+                      WebSocket: {wsStatus}
+                    </p>
                   </div>
                   <motion.div
-                    animate={hoveredCard === 'risk' ? { rotate: -360 } : {}}
+                    animate={hoveredCard === 'status' ? { scale: [1, 1.1, 1] } : {}}
                     transition={{ duration: 0.5 }}
                   >
-                    <Shield className="h-8 w-8 text-purple-200" />
+                    <StatusIndicator status={getSystemStatus()} size="lg" />
                   </motion.div>
                 </div>
                 <motion.div 
@@ -530,235 +547,364 @@ function App() {
           </motion.div>
         </motion.div>
 
-        {/* Main Content Tabs */}
-        <motion.div 
+        {/* Main Dashboard Content */}
+        <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4 }}
         >
-          <Tabs defaultValue="logs" className="w-full" onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 md:w-[400px] mx-auto mb-6 bg-slate-200 dark:bg-slate-800 rounded-lg shadow-inner">
-              <TabsTrigger value="logs" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg">
-                <Activity className="h-4 w-4 mr-2" /> Logs
-              </TabsTrigger>
-              <TabsTrigger value="alerts" className="data-[state=active]:bg-red-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg">
-                <AlertTriangle className="h-4 w-4 mr-2" /> Alerts
-              </TabsTrigger>
-              <TabsTrigger value="stats" className="data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300 rounded-lg">
-                <BarChart3 className="h-4 w-4 mr-2" /> Stats
-              </TabsTrigger>
-            </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <TabsList className="grid w-full sm:w-auto grid-cols-3 lg:grid-cols-4">
+                <TabsTrigger value="logs" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Logs
+                </TabsTrigger>
+                <TabsTrigger value="alerts" className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Alerts
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger value="agents" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Agents
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="logs">
-              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-xl font-bold text-slate-800 dark:text-white">Recent Logs</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Input 
-                      type="text" 
-                      placeholder="Search logs..." 
-                      className="w-[200px] dark:bg-slate-800 dark:text-white dark:border-slate-700"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                    <Button variant="outline" size="sm" onClick={() => downloadData(filteredLogs, 'logs', 'json')}> 
-                      <Download className="h-4 w-4 mr-2" /> JSON
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => downloadData(filteredLogs, 'logs', 'csv')}> 
-                      <Download className="h-4 w-4 mr-2" /> CSV
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                      <thead className="bg-slate-50 dark:bg-slate-800">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Timestamp</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sender</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Receiver</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Context</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Payload</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Alerts</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
-                        {filteredLogs.length === 0 ? (
-                          <tr>
-                            <td colSpan="7" className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500 dark:text-slate-400">
-                              {loading ? 'Loading logs...' : 'No logs found.'}
-                            </td>
-                          </tr>
-                        ) : (
-                          filteredLogs.map((log) => (
-                            <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-200">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">{formatTimestamp(log.timestamp)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">{log.sender}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">{log.receiver}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">{log.context}</td>
-                              <td className="px-6 py-4 text-sm text-slate-900 dark:text-white max-w-xs truncate">{log.payload}</td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge className={getRiskBadgeColor(log.risk)}>{log.risk}</Badge>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
-                                {log.alerts && log.alerts.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {log.alerts.map((alert, idx) => (
-                                      <Badge key={idx} variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                        {alert.rule_id}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">None</Badge>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  {lastUpdated && (
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">
-                      Last updated: {lastUpdated.toLocaleTimeString()}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="alerts">
-              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg">
-                <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle className="text-xl font-bold text-slate-800 dark:text-white">Active Alerts</CardTitle>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <Filter className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      <span className="text-sm text-slate-700 dark:text-slate-300">Min Risk: {minRisk[0]}</span>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Search className="h-4 w-4 text-slate-500" />
+                  <Input
+                    placeholder="Search logs..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-64"
+                  />
+                </div>
+                
+                {activeTab === 'alerts' && (
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-slate-500" />
+                    <div className="w-32">
                       <Slider
-                        defaultValue={[80]}
-                        max={100}
-                        step={1}
+                        value={minRisk}
                         onValueChange={setMinRisk}
-                        className="w-[100px]"
+                        max={100}
+                        min={0}
+                        step={10}
+                        className="w-full"
                       />
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => downloadData(alerts, 'alerts', 'json')}> 
-                      <Download className="h-4 w-4 mr-2" /> JSON
+                    <span className="text-sm text-slate-600 dark:text-slate-400 min-w-fit">
+                      Risk ≥ {minRisk[0]}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <TabsContent value="logs" className="space-y-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Activity className="h-5 w-5" />
+                      Recent Logs
+                    </CardTitle>
+                    <CardDescription>
+                      Real-time log stream from your AI agents
+                      {lastUpdated && (
+                        <span className="ml-2 text-xs">
+                          Last updated: {formatTimestamp(lastUpdated)}
+                        </span>
+                      )}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => downloadData(filteredLogs, 'logs', 'json')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export JSON
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => downloadData(alerts, 'alerts', 'csv')}> 
-                      <Download className="h-4 w-4 mr-2" /> CSV
+                    <Button
+                      onClick={() => downloadData(filteredLogs, 'logs', 'csv')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export CSV
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-                      <thead className="bg-slate-50 dark:bg-slate-800">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Timestamp</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sender</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Context</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Payload</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Risk</th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Alerts</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
-                        {alerts.length === 0 ? (
-                          <tr>
-                            <td colSpan="6" className="px-6 py-4 whitespace-nowrap text-center text-sm text-slate-500 dark:text-slate-400">
-                              No alerts found above risk {minRisk[0]}.
-                            </td>
-                          </tr>
-                        ) : (
-                          alerts.map((alert) => (
-                            <tr key={alert.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors duration-200">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">{formatTimestamp(alert.timestamp)}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">{alert.sender}</td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">{alert.context}</td>
-                              <td className="px-6 py-4 text-sm text-slate-900 dark:text-white max-w-xs truncate">{alert.payload}</td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge className={getRiskBadgeColor(alert.risk)}>{alert.risk}</Badge>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-white">
-                                {alert.alerts && alert.alerts.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {alert.alerts.map((a, idx) => (
-                                      <Badge key={idx} variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                        {a.rule_id}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">None</Badge>
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <AnimatePresence>
+                      {filteredLogs.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center py-8 text-slate-500 dark:text-slate-400"
+                        >
+                          <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No logs available</p>
+                          <p className="text-sm">Logs will appear here in real-time</p>
+                        </motion.div>
+                      ) : (
+                        filteredLogs.map((log, index) => (
+                          <motion.div
+                            key={log.id || index}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="flex items-start justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {log.sender}
+                                </Badge>
+                                {log.receiver && (
+                                  <>
+                                    <span className="text-slate-400">→</span>
+                                    <Badge variant="outline" className="text-xs">
+                                      {log.receiver}
+                                    </Badge>
+                                  </>
                                 )}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                  {formatTimestamp(log.timestamp)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+                                {log.payload || log.context || 'No message content'}
+                              </p>
+                              {showDetails && log.context && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  Context: {log.context}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 ml-4">
+                              {log.risk !== undefined && (
+                                <Badge className={`${getRiskBadgeColor(log.risk)} text-white`}>
+                                  Risk: {log.risk}%
+                                </Badge>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))
+                      )}
+                    </AnimatePresence>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            <TabsContent value="stats">
-              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg">
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold text-slate-800 dark:text-white">Agent Statistics</CardTitle>
+            <TabsContent value="alerts" className="space-y-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      Security Alerts
+                    </CardTitle>
+                    <CardDescription>
+                      High-risk events requiring attention (Risk ≥ {minRisk[0]}%)
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => downloadData(alerts, 'alerts', 'json')}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={agentChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
-                        <XAxis dataKey="name" className="text-sm text-slate-500 dark:text-slate-400" />
-                        <YAxis className="text-sm text-slate-500 dark:text-slate-400" />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: darkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '8px' }}
-                          itemStyle={{ color: darkMode ? '#fff' : '#000' }}
-                          labelStyle={{ color: darkMode ? '#fff' : '#000' }}
-                        />
-                        <Bar dataKey="messages" fill="#8884d8" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
+                  <div className="space-y-4 max-h-96 overflow-y-auto">
+                    <AnimatePresence>
+                      {alerts.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center py-8 text-slate-500 dark:text-slate-400"
+                        >
+                          <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No active alerts</p>
+                          <p className="text-sm">Your system is secure</p>
+                        </motion.div>
+                      ) : (
+                        alerts.map((alert, index) => (
+                          <motion.div
+                            key={alert.id || index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ delay: index * 0.05 }}
+                            className="flex items-start justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2">
+                                <AlertTriangle className="h-4 w-4 text-red-500" />
+                                <Badge variant="outline" className="text-xs border-red-300 text-red-700">
+                                  {alert.sender}
+                                </Badge>
+                                <span className="text-xs text-slate-500 dark:text-slate-400">
+                                  {formatTimestamp(alert.timestamp)}
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+                                {alert.payload || alert.context || 'High-risk activity detected'}
+                              </p>
+                              {showDetails && alert.context && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  Context: {alert.context}
+                                </p>
+                              )}
+                            </div>
+                            <Badge className={`${getRiskBadgeColor(alert.risk)} text-white ml-4`}>
+                              {alert.risk}%
+                            </Badge>
+                          </motion.div>
+                        ))
+                      )}
+                    </AnimatePresence>
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg mt-6">
+            <TabsContent value="analytics" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Agent Activity
+                    </CardTitle>
+                    <CardDescription>
+                      Message volume by agent
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={agentChartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="messages" fill="#8b5cf6" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Risk Distribution
+                    </CardTitle>
+                    <CardDescription>
+                      Alert severity breakdown
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={riskChartData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {riskChartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="agents" className="space-y-6">
+              <Card>
                 <CardHeader>
-                  <CardTitle className="text-xl font-bold text-slate-800 dark:text-white">Risk Distribution</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Agent Status
+                  </CardTitle>
+                  <CardDescription>
+                    Overview of all active agents in your organization
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={riskChartData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                  <div className="space-y-4">
+                    {Object.values(agentStats).length === 0 ? (
+                      <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No agents detected</p>
+                        <p className="text-sm">Agents will appear here once they start sending logs</p>
+                      </div>
+                    ) : (
+                      Object.values(agentStats).map((agent, index) => (
+                        <motion.div
+                          key={agent.name}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg"
                         >
-                          {riskChartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: darkMode ? '#1e293b' : '#fff', border: 'none', borderRadius: '8px' }}
-                          itemStyle={{ color: darkMode ? '#fff' : '#000' }}
-                          labelStyle={{ color: darkMode ? '#fff' : '#000' }}
-                        />
-                      </PieChart>
-                    </ResponsiveContainer>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                              <span className="text-white font-semibold text-sm">
+                                {agent.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <p className="font-medium text-slate-900 dark:text-slate-100">
+                                {agent.name}
+                              </p>
+                              <p className="text-sm text-slate-500 dark:text-slate-400">
+                                Last seen: {formatTimestamp(agent.lastSeen)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                                {agent.count} messages
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Total activity
+                              </p>
+                            </div>
+                            <StatusIndicator status="online" size="sm" />
+                          </div>
+                        </motion.div>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -766,16 +912,79 @@ function App() {
           </Tabs>
         </motion.div>
       </main>
-
-      {/* Footer */}
-      <footer className="container mx-auto px-6 py-4 text-center text-slate-600 dark:text-slate-400 text-sm">
-        <p>&copy; {new Date().getFullYear()} SentinelMesh. All rights reserved.</p>
-        <p>Powered by AI</p>
-      </footer>
     </div>
   )
 }
 
-export default App
+function AuthWrapper() {
+  const { isAuthenticated, isLoading } = useAuth()
+  const [authMode, setAuthMode] = useState('login') // 'login' or 'register'
+  const { login, register } = useAuth()
+  const [authLoading, setAuthLoading] = useState(false)
 
+  const handleLogin = async (username, password) => {
+    setAuthLoading(true)
+    try {
+      await login(username, password)
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  const handleRegister = async (username, password, org) => {
+    setAuthLoading(true)
+    try {
+      await register(username, password, org)
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading SentinelMesh...</p>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    if (authMode === 'login') {
+      return (
+        <Login
+          onLogin={handleLogin}
+          onSwitchToRegister={() => setAuthMode('register')}
+          isLoading={authLoading}
+        />
+      )
+    } else {
+      return (
+        <Register
+          onRegister={handleRegister}
+          onSwitchToLogin={() => setAuthMode('login')}
+          isLoading={authLoading}
+        />
+      )
+    }
+  }
+
+  return <Dashboard />
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AuthWrapper />
+    </AuthProvider>
+  )
+}
+
+export default App
 
