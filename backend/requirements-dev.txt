@@ -1,0 +1,25 @@
+# Development dependencies for SentinelMesh Backend
+
+# Code formatting and linting
+black==23.12.1
+flake8==7.0.0
+isort==5.13.2
+
+# Testing
+pytest==7.4.4
+pytest-asyncio==0.23.2
+pytest-cov==4.1.0
+httpx==0.26.0  # For testing FastAPI endpoints
+
+# Type checking
+mypy==1.8.0
+
+# Development tools
+pre-commit==3.6.0
+
+# Database testing
+pytest-mock==3.12.0
+
+# Load testing (optional)
+locust==2.20.0
+

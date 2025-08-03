@@ -1,0 +1,35 @@
+# YAML linting configuration for SentinelMesh
+extends: default
+
+rules:
+  # Line length
+  line-length:
+    max: 120
+    level: warning
+
+  # Indentation
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+
+  # Comments
+  comments:
+    min-spaces-from-content: 1
+
+  # Document start
+  document-start:
+    present: false
+
+  # Truthy values
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no']
+
+ignore: |
+  .github/
+  node_modules/
+  dist/
+  build/
+  .venv/
+  venv/
+
