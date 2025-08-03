@@ -198,11 +198,12 @@ async def get_statistics(
 async def http_exception_handler(
     request: Request,
     exc: HTTPException
-) -> JSONResponse:
+ ) -> JSONResponse:
     """Handle HTTP exceptions with structured error responses."""
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
+            message=exc.detail, # Add this line
             error=exc.detail,
             status_code=exc.status_code,
             timestamp=datetime.now(timezone.utc).isoformat()
@@ -219,11 +220,13 @@ async def general_exception_handler(
     return JSONResponse(
         status_code=500,
         content=ErrorResponse(
+            message="Internal server error", # Add this line
             error="Internal server error",
             status_code=500,
             timestamp=datetime.now(timezone.utc).isoformat()
         ).dict()
     )
+
 
 
 # Serve React app for all non-API routes (only if React files exist)
