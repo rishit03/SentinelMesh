@@ -3,7 +3,7 @@
 import os
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, Query, Depends, HTTPException
@@ -88,12 +88,11 @@ async def health_check():
     """Health check endpoint for monitoring and load balancers."""
     return HealthResponse(
         status="healthy",
-        service="sentinelmesh-api", # Add this line
+        service="sentinelmesh-api",
         version="0.1.0",
         timestamp=datetime.now(timezone.utc).isoformat(),
-        uptime=0 # Change to a numerical value, e.g., 0 or calculate actual uptime
+        uptime=0 # Changed to a numerical value
     )
-
 
 
 @app.post("/log", response_model=LogResponse)
@@ -123,11 +122,13 @@ async def receive_log(
         data["risk"] = risk
 
         await insert_log(log_id, data)
+        
+        # Corrected response to match LogResponse model
         return LogResponse(
-            status="received",
-            id=log_id,
+            message="Log received and processed successfully",
+            log_id=log_id,
             risk=risk,
-            org=org
+            alerts=alerts
         )
     except Exception as e:
         raise HTTPException(
@@ -136,44 +137,27 @@ async def receive_log(
         )
 
 
-@app.post("/log", response_model=LogResponse)
-async def receive_log(
-    request: Request,
-    org: str = Depends(get_current_org)
-) -> LogResponse:
+@app.get("/logs", response_model=LogsResponse)
+async def get_all_logs(org: str = Depends(get_current_org)) -> LogsResponse:
     """
-    Receive and process a log entry from an AI agent.
+    Retrieve all logs for the authenticated organization.
+
+    Returns all log entries regardless of risk level, useful for
+    comprehensive monitoring and forensic analysis.
     """
     try:
-        data = await request.json()
-        log_id = str(uuid.uuid4())
-        data["id"] = log_id
-        data["timestamp"] = data.get("timestamp") or datetime.now(
-            timezone.utc
-        ).isoformat()
-        data["received_at"] = datetime.now(timezone.utc).isoformat()
-        data["org"] = org
-
-        # Import rule engine here (dynamic)
-        from rules.rule_engine import check_all_rules
-        alerts, risk = check_all_rules(data)
-        data["risk"] = risk
-
-        await insert_log(log_id, data)
-        
-        # ✅ CORRECTED RESPONSE - matches LogResponse model
-        return LogResponse(
-            message="Log received and processed successfully",  # ✅ CORRECT FIELD
-            log_id=log_id,                                      # ✅ CORRECT FIELD
-            risk=risk,                                          # ✅ CORRECT FIELD
-            alerts=alerts                                       # ✅ CORRECT FIELD (from rule engine)
+        logs = await get_logs(min_risk=0)
+        return LogsResponse(
+            logs=logs,
+            total=len(logs),
+            page=1,
+            per_page=50
         )
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to process log: {str(e)}"
+            detail=f"Failed to retrieve logs: {str(e)}"
         )
-
 
 
 @app.get("/alerts", response_model=AlertsResponse)
@@ -192,7 +176,12 @@ async def get_alerts(
     """
     try:
         logs = await get_logs(min_risk=min_risk)
-        return AlertsResponse(alerts=logs, org=org)
+        # Corrected response to match AlertsResponse model
+        return AlertsResponse(
+            alerts=logs,
+            total=len(logs),
+            min_risk=min_risk
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -229,7 +218,7 @@ async def http_exception_handler(
     return JSONResponse(
         status_code=exc.status_code,
         content=ErrorResponse(
-            message=exc.detail, # Add this line
+            message=exc.detail,
             error=exc.detail,
             status_code=exc.status_code,
             timestamp=datetime.now(timezone.utc).isoformat()
@@ -246,13 +235,12 @@ async def general_exception_handler(
     return JSONResponse(
         status_code=500,
         content=ErrorResponse(
-            message="Internal server error", # Add this line
+            message="Internal server error",
             error="Internal server error",
             status_code=500,
             timestamp=datetime.now(timezone.utc).isoformat()
         ).dict()
     )
-
 
 
 # Serve React app for all non-API routes (only if React files exist)
@@ -286,5 +274,3 @@ async def serve_react_app(full_path: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
