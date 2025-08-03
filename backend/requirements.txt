@@ -4,3 +4,7 @@ python-dotenv
 aiosqlite
 python-multipart
 requests
+PyYAML
+python-jose
+passlib
+bcrypt
