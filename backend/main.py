@@ -45,11 +45,13 @@ app = FastAPI(
 
 # Configure CORS
 origins = [
-    "http://localhost:5173",  # Allow your local React development server
-    "https://pgncwesl.manus.space",  # Allow the deployed React app
+    "http://localhost:5173",  # For local React development
+    "https://pgncwesl.manus.space", # The URL where I deployed the React app (if still in use )
     "http://localhost:3000",  # Alternative React dev server port
+    "https://sentinelmesh-frontend.onrender.com", # <--- **ADD YOUR DEPLOYED REACT APP URL HERE**
     # Add any other domains where your frontend might be hosted
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
