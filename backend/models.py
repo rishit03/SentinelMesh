@@ -250,17 +250,15 @@ class ErrorResponse(BaseModel):
 
 
 class User(BaseModel):
-    """Model for a user."""
+    """Model for a user (without password)."""
 
     username: str = Field(..., description="Unique username")
-    password: str = Field(..., description="User password (hashed)")
     org: str = Field(..., description="Organization identifier")
 
     class Config:
         schema_extra = {
             "example": {
                 "username": "testuser",
-                "password": "hashedpassword",
                 "org": "example-org",
             }
         }
