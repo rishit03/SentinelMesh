@@ -17,9 +17,18 @@ async def init_db():
                 context TEXT,
                 payload TEXT,
                 timestamp TEXT,
-                received_at TEXT,  -- Added
-                org TEXT,          -- Added
+                received_at TEXT,
+                org TEXT,
                 risk INTEGER
+            )
+        """
+        )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                username TEXT PRIMARY KEY,
+                hashed_password TEXT NOT NULL,
+                org TEXT NOT NULL
             )
         """
         )
@@ -45,8 +54,8 @@ async def insert_log(log_id, data):
                 data.get("context"),
                 data.get("payload"),
                 data.get("timestamp"),
-                data.get("received_at"),  # Added
-                data.get("org"),          # Added
+                data.get("received_at"),
+                data.get("org"),
                 int(data.get("risk", 0)),
             ),
         )
@@ -87,3 +96,28 @@ async def get_agent_stats():
         )
         rows = await cursor.fetchall()
         return [dict(zip([col[0] for col in cursor.description], row)) for row in rows]
+
+
+async def create_user(username: str, hashed_password: str, org: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO users (username, hashed_password, org) VALUES (?, ?, ?)",
+            (username, hashed_password, org),
+        )
+        await db.commit()
+
+
+async def get_user_by_username(username: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            "SELECT username, hashed_password, org FROM users WHERE username = ?",
+            (username,),
+        )
+        user_data = await cursor.fetchone()
+        if user_data:
+            return {
+                "username": user_data[0],
+                "hashed_password": user_data[1],
+                "org": user_data[2],
+            }
+        return None

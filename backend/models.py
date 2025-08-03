@@ -1,7 +1,3 @@
-"""
-Pydantic models for SentinelMesh API.
-"""
-
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -15,31 +11,6 @@ class LogResponse(BaseModel):
     log_id: str = Field(..., description="Unique identifier for the log entry")
     risk: int = Field(..., description="Calculated risk score (0-100)")
     # Updated alerts field to match the output of check_all_rules
-    alerts: List[Dict[str, Any]] = Field(..., description="List of triggered alerts")
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "message": "Log received and processed",
-                "log_id": "123e4567-e89b-12d3-a456-426614174000",
-                "risk": 25,
-                "alerts": [
-                    {
-                        "rule_id": "ip_detection",
-                        "message": "IP address detected in payload",
-                        "risk": 25,
-                    }
-                ],
-            }
-        }
-
-
-class LogResponse(BaseModel):
-    """Response model for log ingestion."""
-
-    message: str = Field(..., description="Success message")
-    log_id: str = Field(..., description="Unique identifier for the log entry")
-    risk: int = Field(..., description="Calculated risk score (0-100)")
     alerts: List[Dict[str, Any]] = Field(..., description="List of triggered alerts")
 
     class Config:
@@ -274,5 +245,76 @@ class ErrorResponse(BaseModel):
                 "error": "ValidationError",
                 "message": "Invalid request data",
                 "details": {"field": "sender", "issue": "Field is required"},
+            }
+        }
+
+
+class User(BaseModel):
+    """Model for a user."""
+
+    username: str = Field(..., description="Unique username")
+    password: str = Field(..., description="User password (hashed)")
+    org: str = Field(..., description="Organization identifier")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "username": "testuser",
+                "password": "hashedpassword",
+                "org": "example-org",
+            }
+        }
+
+
+class UserInDB(User):
+    """Model for a user stored in the database, including hashed password."""
+    hashed_password: str = Field(..., description="Hashed password")
+
+
+class Token(BaseModel):
+    """Model for the authentication token response."""
+    access_token: str = Field(..., description="JWT access token")
+    token_type: str = Field("bearer", description="Type of the token")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "token_type": "bearer",
+            }
+        }
+
+
+class TokenData(BaseModel):
+    """Model for the data contained within the token."""
+    username: Optional[str] = None
+
+
+class UserCreate(BaseModel):
+    """Model for user creation request."""
+    username: str = Field(..., description="Unique username")
+    password: str = Field(..., description="User password")
+    org: str = Field(..., description="Organization identifier")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "username": "newuser",
+                "password": "securepassword123",
+                "org": "new-org",
+            }
+        }
+
+
+class UserResponse(BaseModel):
+    """Model for user response (excluding password)."""
+    username: str = Field(..., description="Unique username")
+    org: str = Field(..., description="Organization identifier")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "username": "newuser",
+                "org": "new-org",
             }
         }
