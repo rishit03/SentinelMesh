@@ -136,22 +136,44 @@ async def receive_log(
         )
 
 
-@app.get("/logs", response_model=LogsResponse)
-async def get_all_logs(org: str = Depends(get_current_org)) -> LogsResponse:
+@app.post("/log", response_model=LogResponse)
+async def receive_log(
+    request: Request,
+    org: str = Depends(get_current_org)
+) -> LogResponse:
     """
-    Retrieve all logs for the authenticated organization.
-
-    Returns all log entries regardless of risk level, useful for
-    comprehensive monitoring and forensic analysis.
+    Receive and process a log entry from an AI agent.
     """
     try:
-        logs = await get_logs(min_risk=0)
-        return LogsResponse(logs=logs, org=org)
+        data = await request.json()
+        log_id = str(uuid.uuid4())
+        data["id"] = log_id
+        data["timestamp"] = data.get("timestamp") or datetime.now(
+            timezone.utc
+        ).isoformat()
+        data["received_at"] = datetime.now(timezone.utc).isoformat()
+        data["org"] = org
+
+        # Import rule engine here (dynamic)
+        from rules.rule_engine import check_all_rules
+        alerts, risk = check_all_rules(data)
+        data["risk"] = risk
+
+        await insert_log(log_id, data)
+        
+        # ✅ CORRECTED RESPONSE - matches LogResponse model
+        return LogResponse(
+            message="Log received and processed successfully",  # ✅ CORRECT FIELD
+            log_id=log_id,                                      # ✅ CORRECT FIELD
+            risk=risk,                                          # ✅ CORRECT FIELD
+            alerts=alerts                                       # ✅ CORRECT FIELD (from rule engine)
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve logs: {str(e)}"
+            detail=f"Failed to process log: {str(e)}"
         )
+
 
 
 @app.get("/alerts", response_model=AlertsResponse)
