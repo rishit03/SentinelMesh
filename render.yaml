@@ -4,24 +4,27 @@ services:
   - name: sentinelmesh-api
     type: web
     env: python
-    repo: https://github.com/rishit03/SentinelMesh
+    repo: https://github.com/rishit03/SentinelMesh # Ensure this is your correct repo URL
     region: oregon
     plan: free
     branch: main
     rootDir: backend
     buildCommand: |
-      # Install Python dependencies
+      # Install Python dependencies for backend
       pip install -r requirements.txt
-      # Navigate to the frontend directory (relative to repo root) and build the React app
+      # Navigate to the frontend directory (relative to repo root ) and build the React app
       cd ../frontend/sentinelmesh-dashboard && npm install --legacy-peer-deps && npm run build
-      # Copy the built React app to the backend directory for serving
-      cp -r dist ../../backend/static_frontend
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: SENTINELMESH_TOKEN
         value: rishit-org-token  # Your API token
+      - key: DATABASE_URL
+        value: sqlite:///./sentinelmesh.db # Ensure this is correct for Render
+      - key: ENVIRONMENT
+        value: production
+    healthCheckPath: /health # Add health check path
 
-  - name: sentinelmesh-dashboard
+  - name: sentinelmesh-dashboard # Keep this service if you still want to deploy the Streamlit dashboard
     type: web
     env: docker
     repo: https://github.com/rishit03/SentinelMesh
@@ -35,4 +38,4 @@ services:
       - key: SENTINELMESH_PASS
         value: 12345678
       - key: API_BASE
-        value: https://sentinelmesh-api.onrender.com
+        value: https://sentinelmesh-api.onrender.com # Ensure this points to your deployed API
