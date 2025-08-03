@@ -74,7 +74,7 @@ function App() {
   const [showDetails, setShowDetails] = useState(true)
   const [hoveredCard, setHoveredCard] = useState(null)
   const [timeRange, setTimeRange] = useState('24h')
-  const [wsStatus, setWsStatus] = useState('Connecting...') // New state for WebSocket status
+  const [wsStatus, setWsStatus] = useState('Connecting...') 
   
   const controls = useAnimation()
 
@@ -94,9 +94,16 @@ function App() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      // Only fetch alerts and other data via HTTP, logs will come from WebSocket
-      const alertsData = await fetchData(`${API_BASE}/alerts?min_risk=${minRisk[0]}`)
+      // Fetch BOTH logs and alerts via HTTP on initial load
+      const [logsData, alertsData] = await Promise.all([
+        fetchData(`${API_BASE}/logs`),
+        fetchData(`${API_BASE}/alerts?min_risk=${minRisk[0]}`)
+      ])
       
+      if (logsData) {
+        setLogs(logsData.logs || []) // Load historical logs
+        setIsConnected(true)
+      }
       if (alertsData) {
         setAlerts(alertsData.alerts || [])
       }
@@ -108,7 +115,6 @@ function App() {
         transition: { duration: 0.3 }
       })
     } catch (error) {
-      // setIsConnected(false) // WebSocket will handle connection status for logs
       console.error('Failed to load data:', error)
     } finally {
       setLoading(false)
@@ -130,7 +136,12 @@ function App() {
       try {
         const newLog = JSON.parse(event.data);
         console.log('New log received:', newLog);
-        setLogs((prevLogs) => [newLog, ...prevLogs]); // Add new log to the top
+        setLogs((prevLogs) => {
+          // Check if this log already exists to avoid duplicates
+          const exists = prevLogs.some(log => log.id === newLog.id);
+          if (exists) return prevLogs;
+          return [newLog, ...prevLogs]; // Add new log to the top
+        });
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);
       }
