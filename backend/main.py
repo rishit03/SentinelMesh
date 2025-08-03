@@ -86,10 +86,12 @@ async def health_check():
     """Health check endpoint for monitoring and load balancers."""
     return HealthResponse(
         status="healthy",
+        service="sentinelmesh-api", # Add this line
         version="0.1.0",
         timestamp=datetime.now(timezone.utc).isoformat(),
-        uptime="unknown"
+        uptime=0 # Change to a numerical value, e.g., 0 or calculate actual uptime
     )
+
 
 
 @app.post("/log", response_model=LogResponse)
