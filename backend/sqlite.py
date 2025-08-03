@@ -17,6 +17,8 @@ async def init_db():
                 context TEXT,
                 payload TEXT,
                 timestamp TEXT,
+                received_at TEXT,  -- Added
+                org TEXT,          -- Added
                 risk INTEGER
             )
         """
@@ -33,8 +35,8 @@ async def insert_log(log_id, data):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
-            INSERT OR REPLACE INTO logs (id, sender, receiver, context, payload, timestamp, risk)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO logs (id, sender, receiver, context, payload, timestamp, received_at, org, risk)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 log_id,
@@ -43,6 +45,8 @@ async def insert_log(log_id, data):
                 data.get("context"),
                 data.get("payload"),
                 data.get("timestamp"),
+                data.get("received_at"),  # Added
+                data.get("org"),          # Added
                 int(data.get("risk", 0)),
             ),
         )
@@ -53,13 +57,19 @@ async def insert_log(log_id, data):
 async def get_logs(min_risk=0):
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            "SELECT * FROM logs WHERE risk >= ? ORDER BY timestamp DESC", (min_risk,)
+            "SELECT id, sender, receiver, context, payload, timestamp, received_at, org, risk FROM logs WHERE risk >= ? ORDER BY timestamp DESC", (min_risk,)
         )
         rows = await cursor.fetchall()
         print(f"📥 Queried {len(rows)} logs from DB")
-        return [
-            dict(zip([column[0] for column in cursor.description], row)) for row in rows
-        ]
+        
+        # Map rows to dictionary, adding missing fields for LogEntry model
+        logs_data = []
+        for row in rows:
+            log_dict = dict(zip([column[0] for column in cursor.description], row))
+            log_dict["rule_matches"] = [] # Add rule_matches as an empty list
+            logs_data.append(log_dict)
+            
+        return logs_data
 
 
 async def get_agent_stats():
