@@ -8,37 +8,28 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 
-class LogRequest(BaseModel):
-    """Request model for log ingestion endpoint."""
+class LogResponse(BaseModel):
+    """Response model for log ingestion."""
 
-    sender: str = Field(
-        ..., description="The entity sending the log", example="agent-alpha"
-    )
-    receiver: str = Field(
-        ..., description="The intended recipient of the log", example="central-server"
-    )
-    context: str = Field(
-        ..., description="Context or category of the log", example="heartbeat"
-    )
-    payload: str = Field(
-        ...,
-        description="The actual log message or data",
-        example="Agent is online and operational",
-    )
-    timestamp: Optional[str] = Field(
-        None,
-        description="ISO 8601 timestamp (optional)",
-        example="2025-08-02T10:30:00.000Z",
-    )
+    message: str = Field(..., description="Success message")
+    log_id: str = Field(..., description="Unique identifier for the log entry")
+    risk: int = Field(..., description="Calculated risk score (0-100)")
+    # Updated alerts field to match the output of check_all_rules
+    alerts: List[Dict[str, Any]] = Field(..., description="List of triggered alerts")
 
     class Config:
         schema_extra = {
             "example": {
-                "sender": "agent-alpha",
-                "receiver": "central-server",
-                "context": "heartbeat",
-                "payload": "Agent is online and operational",
-                "timestamp": "2025-08-02T10:30:00.000Z",
+                "message": "Log received and processed",
+                "log_id": "123e4567-e89b-12d3-a456-426614174000",
+                "risk": 25,
+                "alerts": [
+                    {
+                        "rule_id": "ip_detection",
+                        "message": "IP address detected in payload",
+                        "risk": 25,
+                    }
+                ],
             }
         }
 

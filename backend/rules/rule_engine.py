@@ -22,28 +22,35 @@ def check_all_rules(message):
     for rule in rules:
         rule_id = rule.get("id", "unknown")
         risk = rule.get("risk", 0)
+        rule_message = rule.get("message", "") # Assuming rules.yaml has a message field
 
         if rule["type"] == "context_block":
             if context in rule["match"]:
-                alerts.append(
-                    f"🔒 Context '{context}' is blocked by policy [{rule_id}]"
-                )
+                alerts.append({
+                    "rule_id": rule_id,
+                    "message": f"Context \'{context}\' is blocked by policy.",
+                    "risk": risk
+                })
                 total_risk += risk
 
         elif rule["type"] == "payload_contains":
             for phrase in rule["match"]:
                 if phrase.lower() in payload.lower():
-                    alerts.append(
-                        f"🚨 Payload matched forbidden phrase: '{phrase}' [{rule_id}]"
-                    )
+                    alerts.append({
+                        "rule_id": rule_id,
+                        "message": f"Payload matched forbidden phrase: \'{phrase}\'.",
+                        "risk": risk
+                    })
                     total_risk += risk
 
         elif rule["type"] == "payload_regex":
             pattern = rule["pattern"]
             if re.search(pattern, payload):
-                alerts.append(
-                    f"⚠️ Payload matched regex pattern: '{pattern}' [{rule_id}]"
-                )
+                alerts.append({
+                    "rule_id": rule_id,
+                    "message": f"Payload matched regex pattern: \'{pattern}\'.",
+                    "risk": risk
+                })
                 total_risk += risk
 
     return alerts, min(total_risk, 100)
