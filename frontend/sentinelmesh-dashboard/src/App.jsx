@@ -30,7 +30,8 @@ import {
   Menu,
   X,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Upload // ADDED THIS IMPORT
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -1261,7 +1262,7 @@ const DashboardGrid = ({
                 className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
               >
                 Edit Mode
-              </motion.div>
+              </Badge>
             )}
             
             {saveStatus && (
