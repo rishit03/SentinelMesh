@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext();
 
@@ -18,17 +18,40 @@ export const AuthProvider = ({ children }) => {
   // API base URL
   const API_BASE = import.meta.env.VITE_API_BASE || 'https://sentinelmesh-api.onrender.com';
 
+  // Helper to decode JWT and check expiry
+  const decodeJwt = useCallback((jwtToken) => {
+    try {
+      const payload = JSON.parse(atob(jwtToken.split('.')[1]));
+      return {
+        username: payload.sub,
+        org: payload.org,
+        exp: payload.exp * 1000, // Convert to milliseconds
+      };
+    } catch (error) {
+      console.error('Error decoding JWT:', error);
+      return null;
+    }
+  }, []);
+
   // Check for existing token on app load
   useEffect(() => {
     const savedToken = localStorage.getItem('sentinelmesh_token');
     const savedUser = localStorage.getItem('sentinelmesh_user');
     
     if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      const decoded = decodeJwt(savedToken);
+      if (decoded && decoded.exp > Date.now()) { // Check if token is still valid
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+      } else {
+        // Token expired, clear it
+        localStorage.removeItem('sentinelmesh_token');
+        localStorage.removeItem('sentinelmesh_user');
+        console.log('Expired token found and cleared.');
+      }
     }
     setIsLoading(false);
-  }, []);
+  }, [decodeJwt]);
 
   // Login function
   const login = async (username, password) => {
@@ -53,16 +76,20 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
       const { access_token } = data;
 
-      // Decode the JWT to get user info (simple base64 decode)
-      const payload = JSON.parse(atob(access_token.split('.')[1]));
+      const decoded = decodeJwt(access_token);
+      if (!decoded) throw new Error('Failed to decode token');
+
       const userData = {
-        username: payload.sub,
-        org: payload.org,
+        username: decoded.username,
+        org: decoded.org,
       };
 
       // Save to localStorage
       localStorage.setItem('sentinelmesh_token', access_token);
       localStorage.setItem('sentinelmesh_user', JSON.stringify(userData));
+      // Store credentials for silent re-login (use with caution)
+      localStorage.setItem('sentinelmesh_username', username);
+      localStorage.setItem('sentinelmesh_password', password);
 
       setToken(access_token);
       setUser(userData);
@@ -115,35 +142,100 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('sentinelmesh_token');
     localStorage.removeItem('sentinelmesh_user');
+    localStorage.removeItem('sentinelmesh_username'); // Clear stored credentials
+    localStorage.removeItem('sentinelmesh_password'); // Clear stored credentials
     setToken(null);
     setUser(null);
   };
 
-  // Function to make authenticated API requests
-  const authenticatedFetch = async (url, options = {}) => {
-    if (!token) {
-      throw new Error('No authentication token available');
+  // Function to make authenticated API requests with retry logic
+  const authenticatedFetch = useCallback(async (url, options = {}) => {
+    let currentToken = token;
+
+    // Check if token is expired or close to expiring (e.g., within 5 minutes)
+    const decoded = currentToken ? decodeJwt(currentToken) : null;
+    const isTokenExpired = !decoded || decoded.exp < Date.now() + (5 * 60 * 1000); // 5 minutes buffer
+
+    if (isTokenExpired) {
+      console.log('Token expired or near expiry. Attempting silent re-login...');
+      const storedUsername = localStorage.getItem('sentinelmesh_username');
+      const storedPassword = localStorage.getItem('sentinelmesh_password');
+
+      if (storedUsername && storedPassword) {
+        try {
+          // Attempt to re-login silently
+          const newUserData = await login(storedUsername, storedPassword);
+          currentToken = localStorage.getItem('sentinelmesh_token'); // Get the new token
+          console.log('Silent re-login successful.');
+        } catch (reloginError) {
+          console.error('Silent re-login failed:', reloginError);
+          logout(); // If silent re-login fails, force logout
+          throw new Error('Session expired. Please log in again.');
+        }
+      } else {
+        logout(); // No stored credentials for silent re-login
+        throw new Error('Session expired. Please log in again.');
+      }
+    }
+
+    if (!currentToken) {
+      logout(); // Should not happen if silent re-login worked or token was valid
+      throw new Error('No authentication token available after refresh attempt.');
     }
 
     const headers = {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${currentToken}`,
       'Content-Type': 'application/json',
       ...options.headers,
     };
 
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       ...options,
       headers,
     });
 
     if (response.status === 401) {
-      // Token expired or invalid, logout user
-      logout();
-      throw new Error('Session expired. Please log in again.');
+      console.log('Received 401. Attempting re-login and retry...');
+      const storedUsername = localStorage.getItem('sentinelmesh_username');
+      const storedPassword = localStorage.getItem('sentinelmesh_password');
+
+      if (storedUsername && storedPassword) {
+        try {
+          // Attempt to re-login silently again
+          const newUserData = await login(storedUsername, storedPassword);
+          currentToken = localStorage.getItem('sentinelmesh_token'); // Get the new token
+          console.log('Re-login successful, retrying request.');
+
+          // Retry the original request with the new token
+          const retryHeaders = {
+            'Authorization': `Bearer ${currentToken}`,
+            'Content-Type': 'application/json',
+            ...options.headers,
+          };
+          response = await fetch(url, {
+            ...options,
+            headers: retryHeaders,
+          });
+
+          if (response.status === 401) {
+            // Still 401 after retry, force logout
+            logout();
+            throw new Error('Session expired after retry. Please log in again.');
+          }
+
+        } catch (reloginError) {
+          console.error('Re-login for retry failed:', reloginError);
+          logout();
+          throw new Error('Session expired. Please log in again.');
+        }
+      } else {
+        logout(); // No stored credentials for re-login
+        throw new Error('Session expired. Please log in again.');
+      }
     }
 
     return response;
-  };
+  }, [token, API_BASE, login, logout, decodeJwt]);
 
   const value = {
     user,
@@ -163,4 +255,5 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
 
