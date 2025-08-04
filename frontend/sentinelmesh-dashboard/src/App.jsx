@@ -77,6 +77,10 @@ import DashboardPage from './pages/DashboardPage.jsx'
 
 // Import custom hooks
 import useLogsData from './hooks/useLogsData.js'
+import useTheme from './hooks/useTheme.js'
+import useMobileDetection from './hooks/useMobileDetection.js'
+import useNotificationsToggle from './hooks/useNotificationsToggle.js'
+import useAutoRefreshToggle from './hooks/useAutoRefreshToggle.js'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -377,38 +381,11 @@ const Dashboard = () => {
   const { user, logout } = useAuth()
   const { logs, alerts, loading, isConnected, fetchData } = useLogsData();
   const [stats, setStats] = useState({})
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('sentinelmesh-dark-mode') === 'true' ||
-             (!localStorage.getItem('sentinelmesh-dark-mode') && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    }
-    return false
-  })
-  const [notifications, setNotifications] = useState(true)
-  const [autoRefresh, setAutoRefresh] = useState(true)
-  const [isMobile, setIsMobile] = useState(false)
+  const [darkMode, setDarkMode] = useTheme();
+  const [notifications, setNotifications] = useNotificationsToggle();
+  const [autoRefresh, setAutoRefresh] = useAutoRefreshToggle();
+  const isMobile = useMobileDetection();
   const [activeTab, setActiveTab] = useState('dashboard')
-
-  // Check if mobile on mount and resize
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
-  // Dark mode effect
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-    localStorage.setItem('sentinelmesh-dark-mode', darkMode.toString())
-  }, [darkMode])
 
   // Update stats whenever logs or alerts change
   useEffect(() => {
