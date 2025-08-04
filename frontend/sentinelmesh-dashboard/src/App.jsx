@@ -33,7 +33,9 @@ import {
   CheckCircle,
   Upload,
   RotateCcw,
-  Save
+  Save,
+  ChevronRight,
+  ExternalLink
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -353,205 +355,13 @@ const ResponsiveContainer = ({
   );
 };
 
-// INLINED useLayoutPersistence Hook
-const DEFAULT_LAYOUTS = {
-  lg: [
-    { i: 'total-logs', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-    { i: 'active-alerts', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-    { i: 'active-agents', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-    { i: 'system-status', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-    { i: 'recent-logs', x: 0, y: 2, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'security-alerts', x: 6, y: 2, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'agent-activity', x: 0, y: 6, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'risk-distribution', x: 6, y: 6, w: 6, h: 4, minW: 4, minH: 3 }
-  ],
-  md: [
-    { i: 'total-logs', x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
-    { i: 'active-alerts', x: 4, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
-    { i: 'active-agents', x: 0, y: 2, w: 4, h: 2, minW: 3, minH: 2 },
-    { i: 'system-status', x: 4, y: 2, w: 4, h: 2, minW: 3, minH: 2 },
-    { i: 'recent-logs', x: 0, y: 4, w: 8, h: 4, minW: 6, minH: 3 },
-    { i: 'security-alerts', x: 0, y: 8, w: 8, h: 4, minW: 6, minH: 3 },
-    { i: 'agent-activity', x: 0, y: 12, w: 8, h: 4, minW: 6, minH: 3 },
-    { i: 'risk-distribution', x: 0, y: 16, w: 8, h: 4, minW: 6, minH: 3 }
-  ],
-  sm: [
-    { i: 'total-logs', x: 0, y: 0, w: 6, h: 2, minW: 4, minH: 2 },
-    { i: 'active-alerts', x: 0, y: 2, w: 6, h: 2, minW: 4, minH: 2 },
-    { i: 'active-agents', x: 0, y: 4, w: 6, h: 2, minW: 4, minH: 2 },
-    { i: 'system-status', x: 0, y: 6, w: 6, h: 2, minW: 4, minH: 2 },
-    { i: 'recent-logs', x: 0, y: 8, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'security-alerts', x: 0, y: 12, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'agent-activity', x: 0, y: 16, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'risk-distribution', x: 0, y: 20, w: 6, h: 4, minW: 4, minH: 3 }
-  ],
-  xs: [
-    { i: 'total-logs', x: 0, y: 0, w: 4, h: 2, minW: 4, minH: 2 },
-    { i: 'active-alerts', x: 0, y: 2, w: 4, h: 2, minW: 4, minH: 2 },
-    { i: 'active-agents', x: 0, y: 4, w: 4, h: 2, minW: 4, minH: 2 },
-    { i: 'system-status', x: 0, y: 6, w: 4, h: 2, minW: 4, minH: 2 },
-    { i: 'recent-logs', x: 0, y: 8, w: 4, h: 4, minW: 4, minH: 3 },
-    { i: 'security-alerts', x: 0, y: 12, w: 4, h: 4, minW: 4, minH: 3 },
-    { i: 'agent-activity', x: 0, y: 16, w: 4, h: 4, minW: 4, minH: 3 },
-    { i: 'risk-distribution', x: 0, y: 20, w: 4, h: 4, minW: 4, minH: 3 }
-  ],
-  xxs: [
-    { i: 'total-logs', x: 0, y: 0, w: 2, h: 2, minW: 2, minH: 2 },
-    { i: 'active-alerts', x: 0, y: 2, w: 2, h: 2, minW: 2, minH: 2 },
-    { i: 'active-agents', x: 0, y: 4, w: 2, h: 2, minW: 2, minH: 2 },
-    { i: 'system-status', x: 0, y: 6, w: 2, h: 2, minW: 2, minH: 2 },
-    { i: 'recent-logs', x: 0, y: 8, w: 2, h: 4, minW: 2, minH: 3 },
-    { i: 'security-alerts', x: 0, y: 12, w: 2, h: 4, minW: 2, minH: 3 },
-    { i: 'agent-activity', x: 0, y: 16, w: 2, h: 4, minW: 2, minH: 3 },
-    { i: 'risk-distribution', x: 0, y: 20, w: 2, h: 4, minW: 2, minH: 3 }
-  ]
-};
-
-const STORAGE_KEY = 'sentinelmesh-dashboard-layout';
-
-const useLayoutPersistence = (userId) => {
-  const [layouts, setLayouts] = useState(DEFAULT_LAYOUTS);
-  const [isLoading, setIsLoading] = useState(true);
-  const [lastSaved, setLastSaved] = useState(null);
-  const [saveStatus, setSaveStatus] = useState('idle');
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
-  // Generate user-specific storage key
-  const getUserStorageKey = useCallback((key) => {
-    return userId ? `${key}-${userId}` : key;
-  }, [userId]);
-
-  // Load layouts from localStorage on mount
-  useEffect(() => {
-    const loadLayouts = () => {
-      try {
-        const userLayoutKey = getUserStorageKey(STORAGE_KEY);
-        const savedLayouts = localStorage.getItem(userLayoutKey);
-        
-        if (savedLayouts) {
-          const parsedLayouts = JSON.parse(savedLayouts);
-          
-          // Validate that the saved layouts have the required structure
-          if (parsedLayouts && typeof parsedLayouts === 'object') {
-            // Merge with default layouts to ensure all breakpoints exist
-            const mergedLayouts = { ...DEFAULT_LAYOUTS, ...parsedLayouts };
-            setLayouts(mergedLayouts);
-            
-            // Load last saved timestamp
-            const savedTimestamp = localStorage.getItem(`${userLayoutKey}-timestamp`);
-            if (savedTimestamp) {
-              setLastSaved(new Date(savedTimestamp));
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load saved layouts:', error);
-        // Fall back to default layouts
-        setLayouts(DEFAULT_LAYOUTS);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadLayouts();
-  }, [getUserStorageKey]);
-
-  // Save layouts to localStorage
-  const saveLayouts = useCallback(async (newLayouts) => {
-    if (!userId) return;
-    
-    setSaveStatus('saving');
-    try {
-      const userLayoutKey = getUserStorageKey(STORAGE_KEY);
-      const timestamp = new Date();
-      
-      localStorage.setItem(userLayoutKey, JSON.stringify(newLayouts));
-      localStorage.setItem(`${userLayoutKey}-timestamp`, timestamp.toISOString());
-      
-      setLayouts(newLayouts);
-      setLastSaved(timestamp);
-      setHasUnsavedChanges(false);
-      setSaveStatus('saved');
-      
-      // Reset save status after 2 seconds
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    } catch (error) {
-      console.error('Failed to save layouts:', error);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    }
-  }, [userId, getUserStorageKey]);
-
-  // Update layouts and mark as unsaved
-  const updateLayouts = useCallback((newLayouts) => {
-    setLayouts(newLayouts);
-    setHasUnsavedChanges(true);
-  }, []);
-
-  // Export layouts
-  const exportLayouts = useCallback(() => {
-    const dataToExport = {
-      layouts,
-      timestamp: new Date().toISOString(),
-      username: userId,
-      version: '1.0'
-    };
-    
-    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
-      type: 'application/json'
-    });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sentinelmesh-layouts-${userId}-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [layouts, userId]);
-
-  // Import layouts
-  const importLayouts = useCallback((file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (imported.layouts) {
-            saveLayouts(imported.layouts);
-            resolve(imported);
-          } else {
-            reject(new Error('Invalid layout file format'));
-          }
-        } catch (error) {
-          reject(error);
-        }
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsText(file);
-    });
-  }, [saveLayouts]);
-
-  return {
-    layouts,
-    isLoading,
-    saveStatus,
-    lastSaved,
-    hasUnsavedChanges,
-    saveLayouts,
-    updateLayouts,
-    exportLayouts,
-    importLayouts
-  };
-};
-
-// INLINED Widget Components with improved styling and overflow handling
-
-// StatsWidget Component
-const StatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, subtitle, loading = false }) => {
+// Summary Widget Components (for Dashboard tab)
+const SummaryStatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, subtitle, loading = false, onClick }) => {
   return (
-    <Card className="h-full overflow-hidden">
+    <Card 
+      className="h-full overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+      onClick={onClick}
+    >
       <CardContent className="p-4 h-full flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-2">
@@ -562,11 +372,14 @@ const StatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, subtitle
               {title}
             </h3>
           </div>
-          {trend && (
-            <Badge variant={trend > 0 ? "default" : "secondary"} className="text-xs">
-              {trend > 0 ? '+' : ''}{trend}%
-            </Badge>
-          )}
+          <div className="flex items-center space-x-1">
+            {trend && (
+              <Badge variant={trend > 0 ? "default" : "secondary"} className="text-xs">
+                {trend > 0 ? '+' : ''}{trend}%
+              </Badge>
+            )}
+            <ChevronRight className="h-4 w-4 text-slate-400" />
+          </div>
         </div>
         
         <div className="flex-1 flex flex-col justify-center">
@@ -583,132 +396,68 @@ const StatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, subtitle
             </p>
           )}
         </div>
+        
+        <div className="flex items-center justify-end mt-2">
+          <span className="text-xs text-slate-400 flex items-center">
+            View Details <ExternalLink className="h-3 w-3 ml-1" />
+          </span>
+        </div>
       </CardContent>
     </Card>
   );
 };
 
-// ChartWidget Component with improved responsive handling
-const ChartWidget = ({ 
-  title, 
-  data, 
-  type = 'bar', 
-  color = '#8884d8', 
-  subtitle,
-  loading = false,
-  height = 200
-}) => {
-  const renderChart = () => {
-    if (loading) {
-      return (
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-32 w-full rounded" />
-        </div>
-      );
-    }
-
-    if (!data || data.length === 0) {
-      return (
-        <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
-          <div className="text-center">
-            <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No data available</p>
-          </div>
-        </div>
-      );
-    }
-
-    const chartProps = {
-      data,
-      margin: { top: 5, right: 5, left: 5, bottom: 5 }
-    };
-
-    switch (type) {
-      case 'line':
-        return (
-          <RechartsResponsiveContainer width="100%" height="100%">
-            <LineChart {...chartProps}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="name" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} />
-            </LineChart>
-          </RechartsResponsiveContainer>
-        );
-      case 'area':
-        return (
-          <RechartsResponsiveContainer width="100%" height="100%">
-            <AreaChart {...chartProps}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="name" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Area type="monotone" dataKey="value" stroke={color} fill={color} fillOpacity={0.3} />
-            </AreaChart>
-          </RechartsResponsiveContainer>
-        );
-      case 'pie':
-        return (
-          <RechartsResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                outerRadius={60}
-                fill={color}
-                dataKey="value"
-                label={({ name, value }) => `${name}: ${value}`}
-              />
-              <Tooltip />
-            </PieChart>
-          </RechartsResponsiveContainer>
-        );
-      default:
-        return (
-          <RechartsResponsiveContainer width="100%" height="100%">
-            <BarChart {...chartProps}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-              <XAxis dataKey="name" fontSize={12} />
-              <YAxis fontSize={12} />
-              <Tooltip />
-              <Bar dataKey="value" fill={color} />
-            </BarChart>
-          </RechartsResponsiveContainer>
-        );
-    }
-  };
-
+const SummaryContentWidget = ({ title, icon: Icon, color = 'blue', count, subtitle, loading = false, onClick }) => {
   return (
-    <Card className="h-full overflow-hidden">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium truncate">{title}</CardTitle>
-            {subtitle && (
-              <CardDescription className="text-xs truncate">{subtitle}</CardDescription>
-            )}
+    <Card 
+      className="h-full overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+      onClick={onClick}
+    >
+      <CardContent className="p-4 h-full flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <div className={`p-2 rounded-lg bg-${color}-100 dark:bg-${color}-900/30`}>
+              <Icon className={`h-4 w-4 text-${color}-600 dark:text-${color}-400`} />
+            </div>
+            <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300 truncate">
+              {title}
+            </h3>
           </div>
+          <ChevronRight className="h-4 w-4 text-slate-400" />
         </div>
-      </CardHeader>
-      <CardContent className="p-4 pt-0">
-        <div style={{ height: `${height}px` }} className="w-full">
-          {renderChart()}
+        
+        <div className="flex-1 flex flex-col justify-center">
+          {loading ? (
+            <div className="space-y-2">
+              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-4 w-full rounded" />
+              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-4 w-3/4 rounded" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {count} items
+              </div>
+              {subtitle && (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center justify-end mt-2">
+          <span className="text-xs text-slate-400 flex items-center">
+            View All <ExternalLink className="h-3 w-3 ml-1" />
+          </span>
         </div>
       </CardContent>
     </Card>
   );
 };
 
-// LogsWidget Component with improved overflow handling
-const LogsWidget = ({ 
-  title = "Recent Logs", 
-  logs = [], 
-  loading = false, 
-  onExport,
-  maxHeight = 300
-}) => {
+// Detailed Widget Components (for individual tabs)
+const DetailedLogsWidget = ({ logs = [], loading = false, onExport }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState([0]);
 
@@ -724,7 +473,7 @@ const LogsWidget = ({
 
   const formatTime = (timestamp) => {
     try {
-      return new Date(timestamp).toLocaleTimeString();
+      return new Date(timestamp).toLocaleString();
     } catch {
       return 'Invalid time';
     }
@@ -737,272 +486,295 @@ const LogsWidget = ({
   };
 
   return (
-    <Card className="h-full overflow-hidden flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            <CardDescription className="text-xs">
-              Real-time log stream from your AI agents
-            </CardDescription>
-          </div>
-          <div className="flex items-center space-x-2">
-            {onExport && (
-              <>
-                <Button size="sm" variant="outline" onClick={() => onExport('json')}>
-                  <Download className="h-3 w-3 mr-1" />
-                  JSON
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => onExport('csv')}>
-                  <Download className="h-3 w-3 mr-1" />
-                  CSV
-                </Button>
-              </>
-            )}
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Logs</h2>
+          <p className="text-slate-600 dark:text-slate-400">Real-time log stream from your AI agents</p>
         </div>
-        
-        <div className="flex items-center space-x-2 mt-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
-            <Input
-              placeholder="Search logs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-7 h-8 text-xs"
-            />
-          </div>
-          <div className="flex items-center space-x-1">
-            <Filter className="h-3 w-3 text-slate-400" />
-            <Slider
-              value={riskFilter}
-              onValueChange={setRiskFilter}
-              max={100}
-              step={10}
-              className="w-16"
-            />
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="p-0 flex-1 overflow-hidden">
-        <div 
-          className="overflow-y-auto h-full px-4 pb-4"
-          style={{ maxHeight: `${maxHeight}px` }}
-        >
-          {loading ? (
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
-                </div>
-              ))}
-            </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
-              <div className="text-center">
-                <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No logs available</p>
-                <p className="text-xs">Logs will appear here when available</p>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {filteredLogs.map((log, index) => (
-                <motion.div
-                  key={log.id || index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center space-x-2 min-w-0 flex-1">
-                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">
-                        {log.sender}
-                      </span>
-                      <span className="text-xs text-slate-400">→</span>
-                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                        {log.receiver || 'SentinelMesh-Dashboard'}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <span className="text-xs text-slate-400">
-                        {formatTime(log.timestamp)}
-                      </span>
-                      <Badge className={`text-xs px-2 py-0 ${getRiskColor(log.risk || 0)}`}>
-                        Risk: {log.risk || 0}%
-                      </Badge>
-                    </div>
-                  </div>
-                  
-                  <p className="text-sm text-slate-700 dark:text-slate-200 mb-1 break-words">
-                    {log.payload}
-                  </p>
-                  
-                  {log.context && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 break-words">
-                      Context: {log.context}
-                    </p>
-                  )}
-                </motion.div>
-              ))}
-            </div>
+        <div className="flex items-center space-x-2">
+          {onExport && (
+            <>
+              <Button variant="outline" onClick={() => onExport('json')}>
+                <Download className="h-4 w-4 mr-2" />
+                Export JSON
+              </Button>
+              <Button variant="outline" onClick={() => onExport('csv')}>
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search logs by content or sender..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-slate-400" />
+              <span className="text-sm text-slate-600 dark:text-slate-400">Min Risk:</span>
+              <Slider
+                value={riskFilter}
+                onValueChange={setRiskFilter}
+                max={100}
+                step={10}
+                className="w-24"
+              />
+              <span className="text-sm font-medium text-slate-900 dark:text-slate-100 w-8">
+                {riskFilter[0]}%
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{logs.length}</div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Total Logs</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{filteredLogs.length}</div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Filtered Results</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {logs.filter(log => log.risk >= 80).length}
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">High Risk</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {new Set(logs.map(log => log.sender)).size}
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Unique Agents</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Logs List */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="max-h-96 overflow-y-auto">
+            {loading ? (
+              <div className="p-4 space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="bg-slate-200 dark:bg-slate-700 h-20 rounded" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
+                <div className="text-center">
+                  <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No logs match your filters</p>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                {filteredLogs.map((log, index) => (
+                  <motion.div
+                    key={log.id || index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center space-x-2 min-w-0 flex-1">
+                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {log.sender}
+                        </span>
+                        <span className="text-sm text-slate-400">→</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          {log.receiver || 'SentinelMesh-Dashboard'}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 flex-shrink-0">
+                        <span className="text-sm text-slate-500 dark:text-slate-400">
+                          {formatTime(log.timestamp)}
+                        </span>
+                        <Badge className={`text-xs ${getRiskColor(log.risk || 0)}`}>
+                          Risk: {log.risk || 0}%
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <p className="text-sm text-slate-700 dark:text-slate-200 mb-2">
+                      {log.payload}
+                    </p>
+                    
+                    {log.context && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Context: {log.context}
+                      </p>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
-// AlertsWidget Component
-const AlertsWidget = ({ 
-  title = "Security Alerts", 
-  alerts = [], 
-  loading = false,
-  onExport,
-  maxHeight = 300
-}) => {
+const DetailedAlertsWidget = ({ alerts = [], loading = false, onExport }) => {
   if (loading) {
     return (
-      <Card className="h-full overflow-hidden">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">{title}</CardTitle>
-          <CardDescription className="text-xs">
-            High-risk events requiring attention (Risk ≥ 80%)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="space-y-2">
-            {[...Array(2)].map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (alerts.length === 0) {
-    return (
-      <Card className="h-full overflow-hidden">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-sm font-medium">{title}</CardTitle>
-              <CardDescription className="text-xs">
-                High-risk events requiring attention (Risk ≥ 80%)
-              </CardDescription>
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="bg-slate-200 dark:bg-slate-700 h-8 w-48 rounded mb-2" />
+          <div className="bg-slate-200 dark:bg-slate-700 h-4 w-96 rounded" />
+        </div>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-slate-200 dark:bg-slate-700 h-24 rounded" />
             </div>
-            {onExport && (
-              <Button size="sm" variant="outline" onClick={onExport}>
-                <Download className="h-3 w-3 mr-1" />
-                Export
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="p-4 flex-1 flex items-center justify-center">
-          <div className="text-center text-slate-500 dark:text-slate-400">
-            <Shield className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p className="text-sm font-medium mb-1">No active alerts</p>
-            <p className="text-xs">Your system is secure</p>
-          </div>
-        </CardContent>
-      </Card>
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="h-full overflow-hidden flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-sm font-medium">{title}</CardTitle>
-            <CardDescription className="text-xs">
-              High-risk events requiring attention (Risk ≥ 80%)
-            </CardDescription>
-          </div>
-          {onExport && (
-            <Button size="sm" variant="outline" onClick={onExport}>
-              <Download className="h-3 w-3 mr-1" />
-              Export
-            </Button>
-          )}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Security Alerts</h2>
+          <p className="text-slate-600 dark:text-slate-400">High-risk events requiring attention (Risk ≥ 80%)</p>
         </div>
-      </CardHeader>
-      
-      <CardContent className="p-0 flex-1 overflow-hidden">
-        <div 
-          className="overflow-y-auto h-full px-4 pb-4"
-          style={{ maxHeight: `${maxHeight}px` }}
-        >
-          <div className="space-y-2">
-            {alerts.map((alert, index) => (
-              <motion.div
-                key={alert.id || index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-              >
-                <div className="flex items-start space-x-3">
-                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-red-800 dark:text-red-200 truncate">
-                        {alert.sender}
-                      </span>
-                      <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 text-xs">
-                        Risk: {alert.risk}%
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-red-700 dark:text-red-300 mb-1 break-words">
-                      {alert.payload}
-                    </p>
-                    {alert.context && (
-                      <p className="text-xs text-red-600 dark:text-red-400 break-words">
-                        {alert.context}
+        {onExport && (
+          <Button variant="outline" onClick={onExport}>
+            <Download className="h-4 w-4 mr-2" />
+            Export Alerts
+          </Button>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{alerts.length}</div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Active Alerts</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {alerts.length > 0 ? Math.round(alerts.reduce((sum, alert) => sum + (alert.risk || 0), 0) / alerts.length) : 0}%
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Average Risk</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {new Set(alerts.map(alert => alert.sender)).size}
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Affected Agents</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Alerts List */}
+      <Card>
+        <CardContent className="p-0">
+          {alerts.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
+              <div className="text-center">
+                <Shield className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm font-medium mb-1">No active alerts</p>
+                <p className="text-xs">Your system is secure</p>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+              {alerts.map((alert, index) => (
+                <motion.div
+                  key={alert.id || index}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="p-4 hover:bg-red-50 dark:hover:bg-red-900/10"
+                >
+                  <div className="flex items-start space-x-3">
+                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-red-800 dark:text-red-200">
+                          {alert.sender}
+                        </span>
+                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                          Risk: {alert.risk}%
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-red-700 dark:text-red-300 mb-2">
+                        {alert.payload}
                       </p>
-                    )}
-                    <p className="text-xs text-red-500 dark:text-red-400 mt-1">
-                      {new Date(alert.timestamp).toLocaleString()}
-                    </p>
+                      {alert.context && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mb-2">
+                          Context: {alert.context}
+                        </p>
+                      )}
+                      <p className="text-xs text-red-500 dark:text-red-400">
+                        {new Date(alert.timestamp).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
-// AgentsWidget Component
-const AgentsWidget = ({ 
-  title = "Agent Activity", 
-  agents = [], 
-  loading = false,
-  maxHeight = 300
-}) => {
+const DetailedAgentsWidget = ({ logs = [], loading = false }) => {
   const agentData = useMemo(() => {
-    if (!agents || agents.length === 0) return [];
+    if (!logs || logs.length === 0) return [];
     
     // Group logs by sender (agent)
     const agentMap = {};
-    agents.forEach(log => {
+    logs.forEach(log => {
       if (!agentMap[log.sender]) {
         agentMap[log.sender] = {
           name: log.sender,
           count: 0,
           lastSeen: log.timestamp,
           avgRisk: 0,
-          totalRisk: 0
+          totalRisk: 0,
+          logs: []
         };
       }
       agentMap[log.sender].count++;
       agentMap[log.sender].totalRisk += (log.risk || 0);
+      agentMap[log.sender].logs.push(log);
       if (new Date(log.timestamp) > new Date(agentMap[log.sender].lastSeen)) {
         agentMap[log.sender].lastSeen = log.timestamp;
       }
@@ -1013,160 +785,164 @@ const AgentsWidget = ({
       ...agent,
       avgRisk: agent.count > 0 ? Math.round(agent.totalRisk / agent.count) : 0
     })).sort((a, b) => b.count - a.count);
-  }, [agents]);
+  }, [logs]);
 
   const chartData = useMemo(() => {
-    return agentData.slice(0, 5).map(agent => ({
-      name: agent.name.length > 10 ? agent.name.substring(0, 10) + '...' : agent.name,
+    return agentData.slice(0, 10).map(agent => ({
+      name: agent.name.length > 15 ? agent.name.substring(0, 15) + '...' : agent.name,
       value: agent.count
     }));
   }, [agentData]);
 
   return (
-    <Card className="h-full overflow-hidden flex flex-col">
-      <CardHeader className="pb-2 flex-shrink-0">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <CardDescription className="text-xs">
-          Message volume by agent
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="p-4 flex-1 overflow-hidden">
-        {loading ? (
-          <div className="animate-pulse space-y-2">
-            <div className="bg-slate-200 dark:bg-slate-700 h-32 rounded" />
-            <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
-          </div>
-        ) : agentData.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
-            <div className="text-center">
-              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No agent activity</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Agent Activity</h2>
+          <p className="text-slate-600 dark:text-slate-400">Message volume and activity by agent</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{agentData.length}</div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Active Agents</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{logs.length}</div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Total Messages</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {agentData.length > 0 ? Math.round(logs.length / agentData.length) : 0}
             </div>
-          </div>
-        ) : (
-          <div className="space-y-4 h-full">
-            {/* Chart */}
-            <div className="h-32">
-              <ChartWidget
-                data={chartData}
-                type="bar"
-                color="#8b5cf6"
-                height={120}
-              />
+            <p className="text-sm text-slate-600 dark:text-slate-400">Avg per Agent</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {agentData.length > 0 ? Math.round(agentData.reduce((sum, agent) => sum + agent.avgRisk, 0) / agentData.length) : 0}%
             </div>
-            
-            {/* Agent List */}
-            <div 
-              className="overflow-y-auto"
-              style={{ maxHeight: `${maxHeight - 160}px` }}
-            >
-              <div className="space-y-2">
-                {agentData.slice(0, 10).map((agent, index) => (
-                  <div
-                    key={agent.name}
-                    className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded text-xs"
-                  >
-                    <div className="flex items-center space-x-2 min-w-0 flex-1">
-                      <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
-                      <span className="font-medium truncate">{agent.name}</span>
-                    </div>
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      <Badge variant="outline" className="text-xs">
-                        {agent.count}
-                      </Badge>
-                      <Badge 
-                        className={`text-xs ${
-                          agent.avgRisk >= 80 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                          agent.avgRisk >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                          'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                        }`}
-                      >
-                        {agent.avgRisk}%
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+            <p className="text-sm text-slate-600 dark:text-slate-400">Avg Risk Level</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Message Volume by Agent</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64">
+            {loading ? (
+              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-full rounded" />
+            ) : chartData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+                <div className="text-center">
+                  <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No data available</p>
+                </div>
+              </div>
+            ) : (
+              <RechartsResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                  <XAxis dataKey="name" fontSize={12} />
+                  <YAxis fontSize={12} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#8b5cf6" />
+                </BarChart>
+              </RechartsResponsiveContainer>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Agent List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Agent Details</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-4 space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : agentData.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
+              <div className="text-center">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No agent activity</p>
               </div>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          ) : (
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+              {agentData.map((agent, index) => (
+                <div
+                  key={agent.name}
+                  className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full" />
+                      <div>
+                        <h3 className="font-medium text-slate-900 dark:text-slate-100">
+                          {agent.name}
+                        </h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Last seen: {new Date(agent.lastSeen).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {agent.count} messages
+                        </div>
+                        <Badge 
+                          className={`text-xs ${
+                            agent.avgRisk >= 80 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                            agent.avgRisk >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                            'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          }`}
+                        >
+                          Avg Risk: {agent.avgRisk}%
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
-// INLINED DashboardGrid Component with improved layout settings
-const DashboardGrid = ({ 
-  logs = [], 
-  alerts = [], 
-  stats = {}, 
-  loading = false, 
-  onRefresh,
-  className = ""
-}) => {
-  const { user } = useAuth();
-  const [isEditMode, setIsEditMode] = useState(false);
-  
-  const {
-    layouts,
-    isLoading: layoutsLoading,
-    saveStatus,
-    lastSaved,
-    hasUnsavedChanges,
-    saveLayouts,
-    updateLayouts,
-    exportLayouts,
-    importLayouts
-  } = useLayoutPersistence(user?.username);
-
-  const handleLayoutChange = (layout, layouts) => {
-    updateLayouts(layouts);
-  };
-
-  const handleSaveLayout = () => {
-    saveLayouts(layouts);
-  };
-
-  const handleResetLayout = () => {
-    updateLayouts(DEFAULT_LAYOUTS);
-  };
-
-  const handleExportLayout = () => {
-    exportLayouts();
-  };
-
-  const handleImportLayout = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      importLayouts(file)
-        .then(() => {
-          console.log('Layout imported successfully');
-        })
-        .catch((error) => {
-          console.error('Failed to import layout:', error);
-        });
-    }
-  };
-
-  // Prepare chart data
-  const agentActivityData = useMemo(() => {
-    if (!logs || logs.length === 0) return [];
+const DetailedRiskWidget = ({ logs = [], loading = false }) => {
+  const riskData = useMemo(() => {
+    if (!logs || logs.length === 0) return {
+      distribution: [],
+      timeline: [],
+      topRisks: []
+    };
     
-    const agentCounts = {};
-    logs.forEach(log => {
-      agentCounts[log.sender] = (agentCounts[log.sender] || 0) + 1;
-    });
-    
-    return Object.entries(agentCounts)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
-  }, [logs]);
-
-  const riskDistributionData = useMemo(() => {
-    if (!logs || logs.length === 0) return [];
-    
+    // Risk distribution
     const riskRanges = {
       'Low (0-30)': 0,
       'Medium (31-70)': 0,
@@ -1180,232 +956,218 @@ const DashboardGrid = ({
       else riskRanges['High (71-100)']++;
     });
     
-    return Object.entries(riskRanges).map(([name, value]) => ({ name, value }));
+    const distribution = Object.entries(riskRanges).map(([name, value]) => ({ name, value }));
+    
+    // Risk timeline (last 24 hours)
+    const now = new Date();
+    const timeline = [];
+    for (let i = 23; i >= 0; i--) {
+      const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
+      const hourLogs = logs.filter(log => {
+        const logTime = new Date(log.timestamp);
+        return logTime.getHours() === hour.getHours() && 
+               logTime.getDate() === hour.getDate();
+      });
+      
+      const avgRisk = hourLogs.length > 0 
+        ? hourLogs.reduce((sum, log) => sum + (log.risk || 0), 0) / hourLogs.length 
+        : 0;
+      
+      timeline.push({
+        name: hour.getHours().toString().padStart(2, '0') + ':00',
+        value: Math.round(avgRisk)
+      });
+    }
+    
+    // Top risk events
+    const topRisks = logs
+      .filter(log => log.risk >= 70)
+      .sort((a, b) => (b.risk || 0) - (a.risk || 0))
+      .slice(0, 10);
+    
+    return { distribution, timeline, topRisks };
   }, [logs]);
 
-  if (layoutsLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
-
   return (
-    <div className={`space-y-4 ${className}`}>
-      {/* Control Panel */}
-      <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-        <div className="flex items-center space-x-4">
-          <Button
-            onClick={() => setIsEditMode(!isEditMode)}
-            variant={isEditMode ? "default" : "outline"}
-            size="sm"
-          >
-            {isEditMode ? <Eye className="h-4 w-4 mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
-            {isEditMode ? 'Exit Edit' : 'Customize'}
-          </Button>
-          
-          {isEditMode && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-            >
-              <Badge variant="outline" className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
-                Edit Mode
-              </Badge>
-            </motion.div>
-          )}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Risk Analysis</h2>
+          <p className="text-slate-600 dark:text-slate-400">Security risk distribution and trends</p>
         </div>
-
-        {isEditMode && (
-          <div className="flex items-center space-x-2">
-            <Button
-              onClick={handleSaveLayout}
-              size="sm"
-              disabled={!hasUnsavedChanges || saveStatus === 'saving'}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {saveStatus === 'saving' ? 'Saving...' : 'Save Layout'}
-            </Button>
-            
-            <Button
-              onClick={handleResetLayout}
-              variant="outline"
-              size="sm"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Reset
-            </Button>
-            
-            <Button
-              onClick={handleExportLayout}
-              variant="outline"
-              size="sm"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            
-            <div className="relative">
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImportLayout}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <Button variant="outline" size="sm">
-                <Upload className="h-4 w-4 mr-2" />
-                Import
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Status Messages */}
-      {saveStatus === 'saved' && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
-        >
-          <div className="flex items-center space-x-2">
-            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <span className="text-sm text-green-700 dark:text-green-300">
-              Layout saved successfully
-              {lastSaved && (
-                <span className="ml-2 text-green-600 dark:text-green-400">
-                  (Last saved: {lastSaved.toLocaleTimeString()})
-                </span>
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+              {riskData.topRisks.length}
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">High Risk Events</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length) : 0}%
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Average Risk</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              {Math.max(...logs.map(log => log.risk || 0), 0)}%
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Peak Risk</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              {Math.round((riskData.distribution.find(d => d.name === 'Low (0-30)')?.value || 0) / logs.length * 100) || 0}%
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Low Risk</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Risk Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Risk Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {loading ? (
+                <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-full rounded" />
+              ) : riskData.distribution.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+                  <div className="text-center">
+                    <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No data available</p>
+                  </div>
+                </div>
+              ) : (
+                <RechartsResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={riskData.distribution}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${value}`}
+                    >
+                      {riskData.distribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={
+                          entry.name.includes('Low') ? '#10b981' :
+                          entry.name.includes('Medium') ? '#f59e0b' : '#ef4444'
+                        } />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </RechartsResponsiveContainer>
               )}
-            </span>
-          </div>
-        </motion.div>
-      )}
+            </div>
+          </CardContent>
+        </Card>
 
-      {saveStatus === 'error' && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-        >
-          <div className="flex items-center space-x-2">
-            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            <span className="text-sm text-red-700 dark:text-red-300">
-              Failed to save layout. Please try again.
-            </span>
-          </div>
-        </motion.div>
-      )}
+        {/* Risk Timeline */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Risk Timeline (24h)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64">
+              {loading ? (
+                <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-full rounded" />
+              ) : riskData.timeline.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+                  <div className="text-center">
+                    <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No data available</p>
+                  </div>
+                </div>
+              ) : (
+                <RechartsResponsiveContainer width="100%" height="100%">
+                  <LineChart data={riskData.timeline}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                    <XAxis dataKey="name" fontSize={12} />
+                    <YAxis fontSize={12} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="value" stroke="#ef4444" strokeWidth={2} />
+                  </LineChart>
+                </RechartsResponsiveContainer>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Dashboard Grid */}
-      <ResponsiveGridLayout
-        className="layout"
-        layouts={layouts}
-        onLayoutChange={handleLayoutChange}
-        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 12, md: 8, sm: 6, xs: 4, xxs: 2 }}
-        rowHeight={60}
-        margin={[16, 16]}
-        containerPadding={[0, 0]}
-        isDraggable={isEditMode}
-        isResizable={isEditMode}
-        useCSSTransforms={true}
-      >
-        {/* Stats Widgets */}
-        <div key="system-status">
-          <StatsWidget
-            title="System Status"
-            value={stats.systemStatus || 'NaN'}
-            icon={Shield}
-            color="purple"
-            loading={loading}
-          />
-        </div>
-        
-        <div key="total-logs">
-          <StatsWidget
-            title="Total Logs"
-            value={logs?.length || 0}
-            icon={Activity}
-            color="blue"
-            trend={5}
-            loading={loading}
-          />
-        </div>
-        
-        <div key="active-alerts">
-          <StatsWidget
-            title="Active Alerts"
-            value={alerts?.length || 0}
-            icon={AlertTriangle}
-            color="red"
-            loading={loading}
-          />
-        </div>
-        
-        <div key="active-agents">
-          <StatsWidget
-            title="Active Agents"
-            value={stats.activeAgents || 2}
-            icon={Users}
-            color="green"
-            loading={loading}
-          />
-        </div>
-
-        {/* Content Widgets */}
-        <div key="recent-logs">
-          <LogsWidget
-            logs={logs}
-            loading={loading}
-            maxHeight={220}
-            onExport={(format) => {
-              console.log(`Exporting logs as ${format}`);
-              // Implement export logic here
-            }}
-          />
-        </div>
-        
-        <div key="security-alerts">
-          <AlertsWidget
-            alerts={alerts}
-            loading={loading}
-            maxHeight={220}
-            onExport={() => {
-              console.log('Exporting alerts');
-              // Implement export logic here
-            }}
-          />
-        </div>
-        
-        <div key="agent-activity">
-          <AgentsWidget
-            agents={logs}
-            loading={loading}
-            maxHeight={220}
-          />
-        </div>
-        
-        <div key="risk-distribution">
-          <ChartWidget
-            title="Risk Distribution"
-            subtitle="Alert severity breakdown"
-            data={riskDistributionData}
-            type="pie"
-            color="#ef4444"
-            loading={loading}
-            height={180}
-          />
-        </div>
-      </ResponsiveGridLayout>
+      {/* Top Risk Events */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Top Risk Events</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-4 space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : riskData.topRisks.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
+              <div className="text-center">
+                <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No high-risk events</p>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-200 dark:divide-slate-700">
+              {riskData.topRisks.map((event, index) => (
+                <div
+                  key={event.id || index}
+                  className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                          {event.sender}
+                        </span>
+                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                          Risk: {event.risk}%
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-700 dark:text-slate-200 mb-1">
+                        {event.payload}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {new Date(event.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-// Main Dashboard Component
+// Main Dashboard Component with Tab Navigation
 const Dashboard = () => {
   const { user, authenticatedFetch, logout } = useAuth()
   const [logs, setLogs] = useState([])
@@ -1423,6 +1185,7 @@ const Dashboard = () => {
   const [notifications, setNotifications] = useState(true)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [activeTab, setActiveTab] = useState('dashboard')
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -1566,6 +1329,11 @@ const Dashboard = () => {
     logout()
   }
 
+  // Navigation handlers
+  const handleNavigateToTab = (tab) => {
+    setActiveTab(tab)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Mobile Header */}
@@ -1690,15 +1458,158 @@ const Dashboard = () => {
         </motion.header>
       )}
 
-      {/* Main Content */}
+      {/* Main Content with Tabs */}
       <main className="max-w-7xl mx-auto px-6 py-6">
-        <DashboardGrid
-          logs={logs}
-          alerts={alerts}
-          stats={stats}
-          loading={loading}
-          onRefresh={handleRefresh}
-        />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+              <BarChart3 className="h-4 w-4" />
+              <span>Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="flex items-center space-x-2">
+              <Activity className="h-4 w-4" />
+              <span>Logs</span>
+            </TabsTrigger>
+            <TabsTrigger value="alerts" className="flex items-center space-x-2">
+              <AlertTriangle className="h-4 w-4" />
+              <span>Alerts</span>
+            </TabsTrigger>
+            <TabsTrigger value="agents" className="flex items-center space-x-2">
+              <Users className="h-4 w-4" />
+              <span>Agents</span>
+            </TabsTrigger>
+            <TabsTrigger value="risk" className="flex items-center space-x-2">
+              <Shield className="h-4 w-4" />
+              <span>Risk</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Dashboard Overview</h2>
+              <p className="text-slate-600 dark:text-slate-400">Quick overview of your SentinelMesh system status</p>
+            </div>
+            
+            {/* Summary Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <SummaryStatsWidget
+                title="System Status"
+                value={stats.systemStatus || 'NaN'}
+                icon={Shield}
+                color="purple"
+                loading={loading}
+                onClick={() => handleNavigateToTab('risk')}
+              />
+              
+              <SummaryStatsWidget
+                title="Total Logs"
+                value={logs?.length || 0}
+                icon={Activity}
+                color="blue"
+                trend={5}
+                loading={loading}
+                onClick={() => handleNavigateToTab('logs')}
+              />
+              
+              <SummaryStatsWidget
+                title="Active Alerts"
+                value={alerts?.length || 0}
+                icon={AlertTriangle}
+                color="red"
+                loading={loading}
+                onClick={() => handleNavigateToTab('alerts')}
+              />
+              
+              <SummaryStatsWidget
+                title="Active Agents"
+                value={stats.activeAgents || 2}
+                icon={Users}
+                color="green"
+                loading={loading}
+                onClick={() => handleNavigateToTab('agents')}
+              />
+            </div>
+
+            {/* Summary Content Widgets */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <SummaryContentWidget
+                title="Recent Logs"
+                icon={Activity}
+                color="blue"
+                count={logs?.length || 0}
+                subtitle="Real-time log stream from your AI agents"
+                loading={loading}
+                onClick={() => handleNavigateToTab('logs')}
+              />
+              
+              <SummaryContentWidget
+                title="Security Alerts"
+                icon={AlertTriangle}
+                color="red"
+                count={alerts?.length || 0}
+                subtitle="High-risk events requiring attention"
+                loading={loading}
+                onClick={() => handleNavigateToTab('alerts')}
+              />
+              
+              <SummaryContentWidget
+                title="Agent Activity"
+                icon={Users}
+                color="purple"
+                count={new Set(logs.map(log => log.sender)).size}
+                subtitle="Message volume by agent"
+                loading={loading}
+                onClick={() => handleNavigateToTab('agents')}
+              />
+              
+              <SummaryContentWidget
+                title="Risk Analysis"
+                icon={Shield}
+                color="orange"
+                count={logs.filter(log => log.risk >= 80).length}
+                subtitle="Security risk distribution and trends"
+                loading={loading}
+                onClick={() => handleNavigateToTab('risk')}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="logs">
+            <DetailedLogsWidget
+              logs={logs}
+              loading={loading}
+              onExport={(format) => {
+                console.log(`Exporting logs as ${format}`);
+                // Implement export logic here
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="alerts">
+            <DetailedAlertsWidget
+              alerts={alerts}
+              loading={loading}
+              onExport={() => {
+                console.log('Exporting alerts');
+                // Implement export logic here
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="agents">
+            <DetailedAgentsWidget
+              logs={logs}
+              loading={loading}
+            />
+          </TabsContent>
+
+          <TabsContent value="risk">
+            <DetailedRiskWidget
+              logs={logs}
+              loading={loading}
+            />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   )
