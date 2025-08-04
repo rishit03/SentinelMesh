@@ -31,7 +31,8 @@ import {
   X,
   AlertCircle,
   CheckCircle,
-  Upload // ADDED THIS IMPORT
+  Upload,
+  RotateCcw // ADDED THIS IMPORT
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -1259,7 +1260,6 @@ const DashboardGrid = ({
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
               >
                 <Badge variant="outline" className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
                   Edit Mode
