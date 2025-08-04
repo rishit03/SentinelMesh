@@ -1,3 +1,4 @@
+
 # sentinelmesh/rules/rule_engine.py
 
 import re
@@ -59,7 +60,7 @@ def check_sequence(current_log: dict, rule: dict) -> bool:
     if not sequence_config:
         return False
 
-    # For simplicity, let's assume a single event type for now
+    # For simplicity, let\'s assume a single event type for now
     # A more robust implementation would iterate through multiple events in the sequence
     event_type = sequence_config[0].get("event_type")
     status = sequence_config[0].get("status")
@@ -95,7 +96,8 @@ def check_sequence(current_log: dict, rule: dict) -> bool:
 
 def check_all_rules(message):
     alerts = []
-    total_risk = 0
+    # Initialize total_risk with the risk from the incoming message
+    total_risk = message.get("risk", 0)
     context = message.get("context", "")
     payload = message.get("payload", "")
 
