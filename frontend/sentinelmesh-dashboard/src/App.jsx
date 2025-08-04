@@ -35,7 +35,9 @@ import {
   RotateCcw,
   Save,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Brain, // Added Brain icon
+  Target // Added Target icon
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -66,6 +68,7 @@ import Login from './Login.jsx'
 import Register from './Register.jsx'
 import { AuthProvider, useAuth } from './AuthContext.jsx'
 import { Responsive, WidthProvider } from 'react-grid-layout'
+import AdvancedAnalytics from './AdvancedAnalytics.jsx' // Added AdvancedAnalytics import
 import './App.css'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
@@ -83,7 +86,9 @@ const MobileHeader = ({
   setAutoRefresh,
   onRefresh,
   onLogout,
-  loading = false
+  loading = false,
+  activeTab,
+  navigateToTab
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -471,1199 +476,680 @@ const DetailedLogsWidget = ({ logs = [], loading = false, onExport }) => {
     });
   }, [logs, searchTerm, riskFilter]);
 
-  const formatTime = (timestamp) => {
-    try {
-      return new Date(timestamp).toLocaleString();
-    } catch {
-      return 'Invalid time';
-    }
-  };
-
-  const getRiskColor = (risk) => {
-    if (risk >= 80) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-    if (risk >= 50) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
-    return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Logs</h2>
-          <p className="text-slate-600 dark:text-slate-400">Real-time log stream from your AI agents</p>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Detailed Logs ({filteredLogs.length})</span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => onExport('json', filteredLogs)}>
+              <Download className="h-4 w-4 mr-2" />
+              Export JSON
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => onExport('csv', filteredLogs)}>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <Input
+            placeholder="Search logs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1"
+          />
+          <div className="flex items-center gap-2">
+            <Label className="whitespace-nowrap">Min Risk:</Label>
+            <Slider
+              value={riskFilter}
+              onValueChange={setRiskFilter}
+              max={100}
+              step={1}
+              className="w-24"
+            />
+            <span className="font-medium">{riskFilter[0]}%</span>
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
-          {onExport && (
-            <>
-              <Button variant="outline" onClick={() => onExport('json')}>
-                <Download className="h-4 w-4 mr-2" />
-                Export JSON
-              </Button>
-              <Button variant="outline" onClick={() => onExport('csv')}>
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-            </>
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {loading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
+              <p className="text-slate-500">Loading logs...</p>
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No logs match your current filters</p>
+            </div>
+          ) : (
+            filteredLogs.map((log, index) => (
+              <div key={log.id || index} className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={
+                      (log.risk || 0) >= 80 ? 'destructive' :
+                      (log.risk || 0) >= 40 ? 'default' : 'secondary'
+                    }>
+                      Risk: {log.risk || 0}%
+                    </Badge>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                      {log.sender} → {log.receiver || 'System'}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500">
+                    {new Date(log.timestamp || log.received_at).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-900 dark:text-white mb-2">{log.payload}</p>
+                {log.context && (
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-3 w-3 text-slate-400" />
+                    <span className="text-xs text-slate-600 dark:text-slate-400">
+                      Context: {log.context}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ))
           )}
         </div>
-      </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                placeholder="Search logs by content or sender..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-slate-400" />
-              <span className="text-sm text-slate-600 dark:text-slate-400">Min Risk:</span>
-              <Slider
-                value={riskFilter}
-                onValueChange={setRiskFilter}
-                max={100}
-                step={10}
-                className="w-24"
-              />
-              <span className="text-sm font-medium text-slate-900 dark:text-slate-100 w-8">
-                {riskFilter[0]}%
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{logs.length}</div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Total Logs</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{filteredLogs.length}</div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Filtered Results</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {logs.filter(log => log.risk >= 80).length}
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">High Risk</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {new Set(logs.map(log => log.sender)).size}
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Unique Agents</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Logs List */}
-      <Card>
-        <CardContent className="p-0">
-          <div className="max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="p-4 space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="bg-slate-200 dark:bg-slate-700 h-20 rounded" />
-                  </div>
-                ))}
-              </div>
-            ) : filteredLogs.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
-                <div className="text-center">
-                  <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No logs match your filters</p>
-                </div>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-200 dark:divide-slate-700">
-                {filteredLogs.map((log, index) => (
-                  <motion.div
-                    key={log.id || index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2 min-w-0 flex-1">
-                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {log.sender}
-                        </span>
-                        <span className="text-sm text-slate-400">→</span>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">
-                          {log.receiver || 'SentinelMesh-Dashboard'}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2 flex-shrink-0">
-                        <span className="text-sm text-slate-500 dark:text-slate-400">
-                          {formatTime(log.timestamp)}
-                        </span>
-                        <Badge className={`text-xs ${getRiskColor(log.risk || 0)}`}>
-                          Risk: {log.risk || 0}%
-                        </Badge>
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm text-slate-700 dark:text-slate-200 mb-2">
-                      {log.payload}
-                    </p>
-                    
-                    {log.context && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Context: {log.context}
-                      </p>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
 const DetailedAlertsWidget = ({ alerts = [], loading = false, onExport }) => {
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="bg-slate-200 dark:bg-slate-700 h-8 w-48 rounded mb-2" />
-          <div className="bg-slate-200 dark:bg-slate-700 h-4 w-96 rounded" />
-        </div>
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="bg-slate-200 dark:bg-slate-700 h-24 rounded" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Security Alerts</h2>
-          <p className="text-slate-600 dark:text-slate-400">High-risk events requiring attention (Risk ≥ 80%)</p>
-        </div>
-        {onExport && (
-          <Button variant="outline" onClick={onExport}>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>High-Risk Alerts ({alerts.length})</span>
+          <Button variant="outline" size="sm" onClick={() => onExport('json', alerts)}>
             <Download className="h-4 w-4 mr-2" />
             Export Alerts
           </Button>
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">{alerts.length}</div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Active Alerts</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {alerts.length > 0 ? Math.round(alerts.reduce((sum, alert) => sum + (alert.risk || 0), 0) / alerts.length) : 0}%
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4 max-h-96 overflow-y-auto">
+          {loading ? (
+            <div className="text-center py-8">
+              <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
+              <p className="text-slate-500">Loading alerts...</p>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Average Risk</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {new Set(alerts.map(alert => alert.sender)).size}
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Affected Agents</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Alerts List */}
-      <Card>
-        <CardContent className="p-0">
-          {alerts.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
-              <div className="text-center">
-                <Shield className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm font-medium mb-1">No active alerts</p>
-                <p className="text-xs">Your system is secure</p>
-              </div>
+          ) : alerts.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+              <p>No high-risk alerts at this time</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-200 dark:divide-slate-700">
-              {alerts.map((alert, index) => (
-                <motion.div
-                  key={alert.id || index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="p-4 hover:bg-red-50 dark:hover:bg-red-900/10"
-                >
-                  <div className="flex items-start space-x-3">
-                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-red-800 dark:text-red-200">
-                          {alert.sender}
-                        </span>
-                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                          Risk: {alert.risk}%
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-red-700 dark:text-red-300 mb-2">
-                        {alert.payload}
-                      </p>
-                      {alert.context && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mb-2">
-                          Context: {alert.context}
-                        </p>
-                      )}
-                      <p className="text-xs text-red-500 dark:text-red-400">
-                        {new Date(alert.timestamp).toLocaleString()}
-                      </p>
-                    </div>
+            alerts.map((log, index) => (
+              <div key={log.id || index} className="p-4 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    <Badge variant="destructive">
+                      {log.risk || 0}% Risk
+                    </Badge>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                      {log.sender}
+                    </span>
                   </div>
-                </motion.div>
-              ))}
-            </div>
+                  <span className="text-xs text-slate-500">
+                    {new Date(log.timestamp || log.received_at).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-900 dark:text-white">{log.payload}</p>
+              </div>
+            ))
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
-const DetailedAgentsWidget = ({ logs = [], loading = false }) => {
-  const agentData = useMemo(() => {
-    if (!logs || logs.length === 0) return [];
-    
-    // Group logs by sender (agent)
-    const agentMap = {};
-    logs.forEach(log => {
-      if (!agentMap[log.sender]) {
-        agentMap[log.sender] = {
-          name: log.sender,
-          count: 0,
-          lastSeen: log.timestamp,
-          avgRisk: 0,
-          totalRisk: 0,
-          logs: []
-        };
-      }
-      agentMap[log.sender].count++;
-      agentMap[log.sender].totalRisk += (log.risk || 0);
-      agentMap[log.sender].logs.push(log);
-      if (new Date(log.timestamp) > new Date(agentMap[log.sender].lastSeen)) {
-        agentMap[log.sender].lastSeen = log.timestamp;
-      }
-    });
-
-    // Calculate average risk and convert to array
-    return Object.values(agentMap).map(agent => ({
-      ...agent,
-      avgRisk: agent.count > 0 ? Math.round(agent.totalRisk / agent.count) : 0
-    })).sort((a, b) => b.count - a.count);
-  }, [logs]);
-
-  const chartData = useMemo(() => {
-    return agentData.slice(0, 10).map(agent => ({
-      name: agent.name.length > 15 ? agent.name.substring(0, 15) + '...' : agent.name,
-      value: agent.count
-    }));
-  }, [agentData]);
-
+const DetailedAgentsWidget = ({ agents = [], loading = false }) => {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Agent Activity</h2>
-          <p className="text-slate-600 dark:text-slate-400">Message volume and activity by agent</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{agentData.length}</div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Active Agents</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{logs.length}</div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Total Messages</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {agentData.length > 0 ? Math.round(logs.length / agentData.length) : 0}
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Avg per Agent</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {agentData.length > 0 ? Math.round(agentData.reduce((sum, agent) => sum + agent.avgRisk, 0) / agentData.length) : 0}%
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Avg Risk Level</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Message Volume by Agent</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64">
-            {loading ? (
-              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-full rounded" />
-            ) : chartData.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
-                <div className="text-center">
-                  <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No data available</p>
-                </div>
-              </div>
-            ) : (
-              <RechartsResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="name" fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#8b5cf6" />
-                </BarChart>
-              </RechartsResponsiveContainer>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Agent List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Agent Details</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+    <Card>
+      <CardHeader>
+        <CardTitle>Agent Details</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4 max-h-96 overflow-y-auto">
           {loading ? (
-            <div className="p-4 space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
-                </div>
-              ))}
+            <div className="text-center py-8">
+              <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
+              <p className="text-slate-500">Loading agents...</p>
             </div>
-          ) : agentData.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
-              <div className="text-center">
-                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No agent activity</p>
-              </div>
+          ) : agents.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No agents available</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-200 dark:divide-slate-700">
-              {agentData.map((agent, index) => (
-                <div
-                  key={agent.name}
-                  className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-3 h-3 bg-green-500 rounded-full" />
-                      <div>
-                        <h3 className="font-medium text-slate-900 dark:text-slate-100">
-                          {agent.name}
-                        </h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Last seen: {new Date(agent.lastSeen).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {agent.count} messages
-                        </div>
-                        <Badge 
-                          className={`text-xs ${
-                            agent.avgRisk >= 80 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
-                            agent.avgRisk >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                            'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                          }`}
-                        >
-                          Avg Risk: {agent.avgRisk}%
-                        </Badge>
-                      </div>
-                    </div>
+            agents.map((agent, index) => (
+              <div key={agent.id || index} className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${
+                    agent.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
+                  }`}></div>
+                  <div>
+                    <p className="font-medium text-slate-900 dark:text-white">{agent.name}</p>
+                    <p className="text-xs text-slate-500">
+                      Last seen: {new Date(agent.lastSeen).toLocaleString()}
+                    </p>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium">{agent.messageCount} messages</p>
+                  <Badge variant={
+                    agent.avgRisk >= 80 ? 'destructive' :
+                    agent.avgRisk >= 40 ? 'default' : 'secondary'
+                  }>
+                    {agent.avgRisk}% avg risk
+                  </Badge>
+                </div>
+              </div>
+            ))
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
 const DetailedRiskWidget = ({ logs = [], loading = false }) => {
-  const riskData = useMemo(() => {
-    if (!logs || logs.length === 0) return {
-      distribution: [],
-      timeline: [],
-      topRisks: []
-    };
-    
-    // Risk distribution
-    const riskRanges = {
-      'Low (0-30)': 0,
-      'Medium (31-70)': 0,
-      'High (71-100)': 0
-    };
-    
-    logs.forEach(log => {
-      const risk = log.risk || 0;
-      if (risk <= 30) riskRanges['Low (0-30)']++;
-      else if (risk <= 70) riskRanges['Medium (31-70)']++;
-      else riskRanges['High (71-100)']++;
-    });
-    
-    const distribution = Object.entries(riskRanges).map(([name, value]) => ({ name, value }));
-    
-    // Risk timeline (last 24 hours)
+  const riskDistribution = useMemo(() => {
+    const low = logs.filter(log => (log.risk || 0) < 40).length;
+    const medium = logs.filter(log => (log.risk || 0) >= 40 && (log.risk || 0) < 80).length;
+    const high = logs.filter(log => (log.risk || 0) >= 80).length;
+    const total = low + medium + high;
+
+    return [
+      { name: 'Low (0-39%)', value: low, fill: '#10b981' },
+      { name: 'Medium (40-79%)', value: medium, fill: '#f59e0b' },
+      { name: 'High (80-100%)', value: high, fill: '#ef4444' }
+    ].map(entry => ({ ...entry, percent: total > 0 ? (entry.value / total) : 0 }));
+  }, [logs]);
+
+  const riskTimelineData = useMemo(() => {
+    // Group logs by hour for the last 24 hours
     const now = new Date();
-    const timeline = [];
-    for (let i = 23; i >= 0; i--) {
+    const data = {};
+    for (let i = 0; i < 24; i++) {
       const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
-      const hourLogs = logs.filter(log => {
-        const logTime = new Date(log.timestamp);
-        return logTime.getHours() === hour.getHours() && 
-               logTime.getDate() === hour.getDate();
-      });
-      
-      const avgRisk = hourLogs.length > 0 
-        ? hourLogs.reduce((sum, log) => sum + (log.risk || 0), 0) / hourLogs.length 
-        : 0;
-      
-      timeline.push({
-        name: hour.getHours().toString().padStart(2, '0') + ':00',
-        value: Math.round(avgRisk)
-      });
+      const hourKey = hour.getHours();
+      data[hourKey] = { hour: `${hourKey}:00`, count: 0, totalRisk: 0 };
     }
-    
-    // Top risk events
-    const topRisks = logs
-      .filter(log => log.risk >= 70)
+
+    logs.forEach(log => {
+      const logDate = new Date(log.timestamp || log.received_at);
+      const hourKey = logDate.getHours();
+      if (data[hourKey]) {
+        data[hourKey].count++;
+        data[hourKey].totalRisk += (log.risk || 0);
+      }
+    });
+
+    return Object.values(data).sort((a, b) => {
+      const hourA = parseInt(a.hour.split(':')[0]);
+      const hourB = parseInt(b.hour.split(':')[0]);
+      return (hourA - hourB + 24) % 24; // Sort chronologically for 24 hours
+    }).map(item => ({ ...item, avgRisk: item.count > 0 ? Math.round(item.totalRisk / item.count) : 0 }));
+  }, [logs]);
+
+  const topRiskEvents = useMemo(() => {
+    return logs
+      .filter(log => (log.risk || 0) > 0)
       .sort((a, b) => (b.risk || 0) - (a.risk || 0))
       .slice(0, 10);
-    
-    return { distribution, timeline, topRisks };
   }, [logs]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Risk Analysis</h2>
-          <p className="text-slate-600 dark:text-slate-400">Security risk distribution and trends</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {riskData.topRisks.length}
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">High Risk Events</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length) : 0}%
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Average Risk</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              {Math.max(...logs.map(log => log.risk || 0), 0)}%
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Peak Risk</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {Math.round((riskData.distribution.find(d => d.name === 'Low (0-30)')?.value || 0) / logs.length * 100) || 0}%
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Low Risk</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Risk Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Risk Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              {loading ? (
-                <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-full rounded" />
-              ) : riskData.distribution.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
-                  <div className="text-center">
-                    <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No data available</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Detailed Risk Analysis</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Risk Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                {loading ? (
+                  <div className="text-center py-8">
+                    <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
+                    <p className="text-slate-500">Loading risk data...</p>
                   </div>
-                </div>
-              ) : (
-                <RechartsResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={riskData.distribution}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {riskData.distribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={
-                          entry.name.includes('Low') ? '#10b981' :
-                          entry.name.includes('Medium') ? '#f59e0b' : '#ef4444'
-                        } />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </RechartsResponsiveContainer>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Risk Timeline */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Risk Timeline (24h)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              {loading ? (
-                <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-full rounded" />
-              ) : riskData.timeline.length === 0 ? (
-                <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
-                  <div className="text-center">
-                    <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No data available</p>
-                  </div>
-                </div>
-              ) : (
-                <RechartsResponsiveContainer width="100%" height="100%">
-                  <LineChart data={riskData.timeline}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                    <XAxis dataKey="name" fontSize={12} />
-                    <YAxis fontSize={12} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="value" stroke="#ef4444" strokeWidth={2} />
-                  </LineChart>
-                </RechartsResponsiveContainer>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Top Risk Events */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Top Risk Events</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-4 space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
-                </div>
-              ))}
-            </div>
-          ) : riskData.topRisks.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
-              <div className="text-center">
-                <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No high-risk events</p>
-              </div>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-200 dark:divide-slate-700">
-              {riskData.topRisks.map((event, index) => (
-                <div
-                  key={event.id || index}
-                  className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                          {event.sender}
-                        </span>
-                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                          Risk: {event.risk}%
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-slate-700 dark:text-slate-200 mb-1">
-                        {event.payload}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        {new Date(event.timestamp).toLocaleString()}
-                      </p>
+                ) : logs.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+                    <div className="text-center">
+                      <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No risk data available</p>
                     </div>
                   </div>
+                ) : (
+                  <RechartsResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={riskDistribution}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {riskDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </RechartsResponsiveContainer>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Risk Timeline (Last 24h)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64">
+                {loading ? (
+                  <div className="text-center py-8">
+                    <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
+                    <p className="text-slate-500">Loading risk data...</p>
+                  </div>
+                ) : logs.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+                    <div className="text-center">
+                      <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No data available</p>
+                    </div>
+                  </div>
+                ) : (
+                  <RechartsResponsiveContainer width="100%" height="100%">
+                    <LineChart data={riskTimelineData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="hour" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="avgRisk" stroke="#ef4444" strokeWidth={2} name="Avg Risk" />
+                      <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} name="Log Count" />
+                    </LineChart>
+                  </RechartsResponsiveContainer>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Risk Events</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4 max-h-64 overflow-y-auto">
+              {loading ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
+                  <p className="text-slate-500">Loading top risk events...</p>
                 </div>
-              ))}
+              ) : topRiskEvents.length === 0 ? (
+                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                  <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                  <p>No high-risk events detected</p>
+                </div>
+              ) : (
+                topRiskEvents.map((log, index) => (
+                  <div key={log.id || index} className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="destructive">
+                          {log.risk || 0}%
+                        </Badge>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                          {log.sender}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-900 dark:text-white truncate">
+                        {log.payload}
+                      </p>
+                    </div>
+                    <span className="text-xs text-slate-500 ml-4">
+                      {new Date(log.timestamp || log.received_at).toLocaleString()}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </CardContent>
+    </Card>
   );
 };
 
-// Main Dashboard Component with Tab Navigation
-const Dashboard = () => {
-  const { user, authenticatedFetch, logout } = useAuth()
-  const [logs, setLogs] = useState([])
-  const [alerts, setAlerts] = useState([])
-  const [stats, setStats] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [isConnected, setIsConnected] = useState(false)
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('sentinelmesh-dark-mode') === 'true' ||
-             (!localStorage.getItem('sentinelmesh-dark-mode') && window.matchMedia('(prefers-color-scheme: dark)').matches)
-    }
-    return false
-  })
-  const [notifications, setNotifications] = useState(true)
-  const [autoRefresh, setAutoRefresh] = useState(true)
-  const [isMobile, setIsMobile] = useState(false)
-  const [activeTab, setActiveTab] = useState('dashboard')
+// Main App Component
+const App = () => {
+  const { user, logout } = useAuth();
+  const [logs, setLogs] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isConnected, setIsConnected] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [notifications, setNotifications] = useState(true);
 
-  // Check if mobile on mount and resize
+  // Mobile state
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
-    }
+      setIsMobile(window.innerWidth < 768);
+    };
     
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  // Dark mode effect
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-    localStorage.setItem('sentinelmesh-dark-mode', darkMode.toString())
-  }, [darkMode])
-
-  // WebSocket connection
-  useEffect(() => {
-    if (!user) return
-
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${wsProtocol}//sentinelmesh-api.onrender.com/ws/logs`
-    
-    let ws
-    let reconnectTimeout
-
-    const connect = () => {
-      try {
-        ws = new WebSocket(wsUrl)
-        
-        ws.onopen = () => {
-          console.log('WebSocket connected')
-          setIsConnected(true)
-        }
-        
-        ws.onmessage = (event) => {
-          try {
-            const newLog = JSON.parse(event.data)
-            setLogs(prevLogs => [newLog, ...prevLogs.slice(0, 99)]) // Keep last 100 logs
-            
-            // Add to alerts if high risk
-            if (newLog.risk >= 80) {
-              setAlerts(prevAlerts => [newLog, ...prevAlerts.slice(0, 49)]) // Keep last 50 alerts
-            }
-          } catch (error) {
-            console.error('Error parsing WebSocket message:', error)
-          }
-        }
-        
-        ws.onclose = () => {
-          console.log('WebSocket disconnected')
-          setIsConnected(false)
-          
-          // Attempt to reconnect after 3 seconds
-          reconnectTimeout = setTimeout(connect, 3000)
-        }
-        
-        ws.onerror = (error) => {
-          console.log('WebSocket error:', error)
-          setIsConnected(false)
-        }
-      } catch (error) {
-        console.error('Error creating WebSocket connection:', error)
-        setIsConnected(false)
-        reconnectTimeout = setTimeout(connect, 3000)
-      }
-    }
-
-    connect()
-
-    return () => {
-      if (reconnectTimeout) clearTimeout(reconnectTimeout)
-      if (ws) {
-        ws.close()
-      }
-    }
-  }, [user])
-
-  // Fetch data function
+  // Fetch data
   const fetchData = useCallback(async () => {
-    if (!user) return
-
+    if (!user?.token) return;
+    
     try {
-      setLoading(true)
+      setIsLoading(true);
+      setError(null);
       
-      // Fetch all data in parallel
-      const [logsResponse, alertsResponse] = await Promise.all([
-        authenticatedFetch('https://sentinelmesh-api.onrender.com/logs'),
-        authenticatedFetch('https://sentinelmesh-api.onrender.com/alerts?min_risk=80')
-      ])
-
-      if (logsResponse.ok) {
-        const logsData = await logsResponse.json()
-        setLogs(logsData.logs || [])
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://sentinelmesh-api.onrender.com'}/logs`, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      if (alertsResponse.ok) {
-        const alertsData = await alertsResponse.json()
-        setAlerts(alertsData.alerts || [])
-      }
-
-      // Mock stats for now
-      setStats({
-        systemStatus: 'Operational',
-        activeAgents: 2,
-        totalLogs: logs.length,
-        activeAlerts: alerts.length
-      })
-
-    } catch (error) {
-      console.error('Error fetching data:', error)
+      
+      const data = await response.json();
+      setLogs(data.logs || []);
+      
+      // Extract unique agents from logs
+      const uniqueAgents = [...new Set((data.logs || []).map(log => log.sender))].map(sender => ({
+        id: sender,
+        name: sender,
+        status: 'active',
+        lastSeen: new Date().toISOString(),
+        messageCount: (data.logs || []).filter(log => log.sender === sender).length,
+        avgRisk: Math.round((data.logs || []).filter(log => log.sender === sender).reduce((sum, log) => sum + (log.risk || 0), 0) / (data.logs || []).filter(log => log.sender === sender).length) || 0
+      }));
+      
+      setAgents(uniqueAgents);
+      setIsConnected(true);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(err.message);
+      setIsConnected(false);
     } finally {
-      setLoading(false)
+      setIsLoading(false);
     }
-  }, [user, authenticatedFetch, logs.length, alerts.length])
+  }, [user?.token]);
 
-  // Initial data fetch
   useEffect(() => {
-    fetchData()
-  }, [user])
+    fetchData();
+    if (autoRefresh) {
+      const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [fetchData, autoRefresh]);
 
-  // Auto-refresh effect
-  useEffect(() => {
-    if (!autoRefresh) return
+  // Handle tab navigation from dashboard widgets
+  const navigateToTab = useCallback((tab) => {
+    setActiveTab(tab);
+    setShowMobileMenu(false);
+  }, []);
 
-    const interval = setInterval(fetchData, 30000) // Refresh every 30 seconds
-    return () => clearInterval(interval)
-  }, [autoRefresh, fetchData])
+  // Export data utility
+  const exportData = useCallback((format, data, filename = 'export') => {
+    if (format === 'json') {
+      const jsonString = JSON.stringify(data, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else if (format === 'csv') {
+      if (data.length === 0) return;
+      const headers = Object.keys(data[0]);
+      const csvContent = [headers.join(','), ...data.map(row => headers.map(fieldName => JSON.stringify(row[fieldName])).join(','))].join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  }, []);
 
-  const handleRefresh = () => {
-    fetchData()
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+        <Login />
+      </div>
+    );
   }
 
-  const handleLogout = () => {
-    logout()
-  }
-
-  // Navigation handlers
-  const handleNavigateToTab = (tab) => {
-    setActiveTab(tab)
-  }
+  const systemStatus = isConnected ? 'connected' : 'disconnected';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      {/* Mobile Header */}
-      {isMobile && (
+    <div className={`min-h-screen transition-colors duration-300 ${
+      isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'
+    }`}>
+      <ResponsiveContainer>
+        {/* Header */}
         <MobileHeader
           user={user}
           isConnected={isConnected}
-          systemStatus={stats.systemStatus}
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
+          systemStatus={systemStatus}
+          darkMode={isDarkMode}
+          setDarkMode={setIsDarkMode}
           notifications={notifications}
           setNotifications={setNotifications}
           autoRefresh={autoRefresh}
           setAutoRefresh={setAutoRefresh}
-          onRefresh={handleRefresh}
-          onLogout={handleLogout}
-          loading={loading}
+          onRefresh={fetchData}
+          onLogout={logout}
+          loading={isLoading}
+          activeTab={activeTab}
+          navigateToTab={navigateToTab}
         />
-      )}
 
-      {/* Desktop Header */}
-      {!isMobile && (
-        <motion.header 
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="sticky top-0 z-50 backdrop-blur-xl bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-700 shadow-lg"
-        >
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              {/* Logo and Status */}
-              <motion.div 
-                className="flex items-center space-x-4"
-                whileHover={{ scale: 1.02 }}
-              >
-                <div className="relative">
-                  <Satellite className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                  <motion.div
-                    className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
-                      isConnected ? 'bg-green-500' : 'bg-red-500'
-                    }`}
-                    animate={{ scale: isConnected ? [1, 1.2, 1] : 1 }}
-                    transition={{ repeat: isConnected ? Infinity : 0, duration: 2 }}
-                  />
-                </div>
+        {/* Main Content */}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            {/* Desktop Tab Navigation */}
+            {!isMobile && (
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Dashboard
+                </TabsTrigger>
+                <TabsTrigger value="logs" className="flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Logs
+                </TabsTrigger>
+                <TabsTrigger value="alerts" className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  Alerts
+                </TabsTrigger>
+                <TabsTrigger value="agents" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Agents
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="flex items-center gap-2">
+                  <Brain className="h-4 w-4" />
+                  Analytics
+                </TabsTrigger>
+                <TabsTrigger value="risk" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Risk
+                </TabsTrigger>
+              </TabsList>
+            )}
+
+            {/* Dashboard Tab */}
+            <TabsContent value="dashboard" className="space-y-6">
+              <div className="flex justify-between items-center">
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    SentinelMesh
-                  </h1>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Remote Dashboard • {user?.org}
-                  </p>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h2>
+                  <p className="text-gray-600 dark:text-gray-400">Real-time monitoring and system status</p>
                 </div>
-              </motion.div>
-
-              {/* User Info and Controls */}
-              <div className="flex items-center space-x-4">
-                {/* Connection Status */}
-                <div className="flex items-center space-x-2">
-                  {isConnected ? (
-                    <Wifi className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  ) : (
-                    <WifiOff className="h-4 w-4 text-red-600 dark:text-red-400" />
-                  )}
-                  <span className="text-sm text-slate-600 dark:text-slate-300">
-                    {isConnected ? 'Connected' : 'Disconnected'}
-                  </span>
-                </div>
-
-                {/* Controls */}
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setDarkMode(!darkMode)}
-                  >
-                    {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setNotifications(!notifications)}
-                  >
-                    <Bell className={`h-4 w-4 ${notifications ? 'text-blue-600' : 'text-slate-400'}`} />
-                  </Button>
-                  
-                  <Button
-                    onClick={handleRefresh}
-                    variant="outline"
-                    size="sm"
-                    disabled={loading}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                  </Button>
-                </div>
-
-                {/* User Menu */}
-                <div className="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-slate-700">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                      {user?.username}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {user?.org}
-                    </p>
-                  </div>
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
-                  </div>
-                  <Button
-                    onClick={handleLogout}
-                    variant="ghost"
-                    size="sm"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button onClick={fetchData} disabled={isLoading}>
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
               </div>
-            </div>
-          </div>
-        </motion.header>
-      )}
 
-      {/* Main Content with Tabs */}
-      <main className="max-w-7xl mx-auto px-6 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="dashboard" className="flex items-center space-x-2">
-              <BarChart3 className="h-4 w-4" />
-              <span>Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center space-x-2">
-              <Activity className="h-4 w-4" />
-              <span>Logs</span>
-            </TabsTrigger>
-            <TabsTrigger value="alerts" className="flex items-center space-x-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span>Alerts</span>
-            </TabsTrigger>
-            <TabsTrigger value="agents" className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span>Agents</span>
-            </TabsTrigger>
-            <TabsTrigger value="risk" className="flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
-              <span>Risk</span>
-            </TabsTrigger>
-          </TabsList>
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <SummaryStatsWidget
+                  title="Total Logs"
+                  value={logs.length}
+                  icon={Activity}
+                  color="blue"
+                  subtitle="Click to view details"
+                  loading={isLoading}
+                  onClick={() => navigateToTab('logs')}
+                />
 
-          <TabsContent value="dashboard" className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">Dashboard Overview</h2>
-              <p className="text-slate-600 dark:text-slate-400">Quick overview of your SentinelMesh system status</p>
-            </div>
-            
-            {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <SummaryStatsWidget
-                title="System Status"
-                value={stats.systemStatus || 'NaN'}
-                icon={Shield}
-                color="purple"
-                loading={loading}
-                onClick={() => handleNavigateToTab('risk')}
-              />
-              
-              <SummaryStatsWidget
-                title="Total Logs"
-                value={logs?.length || 0}
-                icon={Activity}
-                color="blue"
-                trend={5}
-                loading={loading}
-                onClick={() => handleNavigateToTab('logs')}
-              />
-              
-              <SummaryStatsWidget
-                title="Active Alerts"
-                value={alerts?.length || 0}
-                icon={AlertTriangle}
-                color="red"
-                loading={loading}
-                onClick={() => handleNavigateToTab('alerts')}
-              />
-              
-              <SummaryStatsWidget
-                title="Active Agents"
-                value={stats.activeAgents || 2}
-                icon={Users}
-                color="green"
-                loading={loading}
-                onClick={() => handleNavigateToTab('agents')}
-              />
-            </div>
+                <SummaryStatsWidget
+                  title="Active Alerts"
+                  value={logs.filter(log => (log.risk || 0) >= 80).length}
+                  icon={AlertTriangle}
+                  color="red"
+                  subtitle="High risk events"
+                  loading={isLoading}
+                  onClick={() => navigateToTab('alerts')}
+                />
 
-            {/* Summary Content Widgets */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SummaryContentWidget
-                title="Recent Logs"
-                icon={Activity}
-                color="blue"
-                count={logs?.length || 0}
-                subtitle="Real-time log stream from your AI agents"
-                loading={loading}
-                onClick={() => handleNavigateToTab('logs')}
-              />
-              
-              <SummaryContentWidget
-                title="Security Alerts"
-                icon={AlertTriangle}
-                color="red"
-                count={alerts?.length || 0}
-                subtitle="High-risk events requiring attention"
-                loading={loading}
-                onClick={() => handleNavigateToTab('alerts')}
-              />
-              
-              <SummaryContentWidget
-                title="Agent Activity"
-                icon={Users}
-                color="purple"
-                count={new Set(logs.map(log => log.sender)).size}
-                subtitle="Message volume by agent"
-                loading={loading}
-                onClick={() => handleNavigateToTab('agents')}
-              />
-              
-              <SummaryContentWidget
-                title="Risk Analysis"
-                icon={Shield}
-                color="orange"
-                count={logs.filter(log => log.risk >= 80).length}
-                subtitle="Security risk distribution and trends"
-                loading={loading}
-                onClick={() => handleNavigateToTab('risk')}
-              />
-            </div>
-          </TabsContent>
+                <SummaryStatsWidget
+                  title="Active Agents"
+                  value={agents.length}
+                  icon={Users}
+                  color="green"
+                  subtitle="Currently monitoring"
+                  loading={isLoading}
+                  onClick={() => navigateToTab('agents')}
+                />
 
-          <TabsContent value="logs">
-            <DetailedLogsWidget
-              logs={logs}
-              loading={loading}
-              onExport={(format) => {
-                console.log(`Exporting logs as ${format}`);
-                // Implement export logic here
-              }}
-            />
-          </TabsContent>
+                <SummaryStatsWidget
+                  title="System Status"
+                  value={logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length) : 0}
+                  icon={Shield}
+                  color="purple"
+                  subtitle="Average risk level"
+                  loading={isLoading}
+                  onClick={() => navigateToTab('risk')}
+                />
+              </div>
 
-          <TabsContent value="alerts">
-            <DetailedAlertsWidget
-              alerts={alerts}
-              loading={loading}
-              onExport={() => {
-                console.log('Exporting alerts');
-                // Implement export logic here
-              }}
-            />
-          </TabsContent>
+              {/* Quick Overview Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <SummaryContentWidget
+                  title="Recent Logs"
+                  icon={Activity}
+                  color="blue"
+                  count={logs.slice(0, 5).length}
+                  subtitle="Latest activities"
+                  loading={isLoading}
+                  onClick={() => navigateToTab('logs')}
+                />
 
-          <TabsContent value="agents">
-            <DetailedAgentsWidget
-              logs={logs}
-              loading={loading}
-            />
-          </TabsContent>
+                <SummaryContentWidget
+                  title="Agent Activity"
+                  icon={Users}
+                  color="green"
+                  count={agents.length}
+                  subtitle="Active agents"
+                  loading={isLoading}
+                  onClick={() => navigateToTab('agents')}
+                />
+              </div>
+            </TabsContent>
 
-          <TabsContent value="risk">
-            <DetailedRiskWidget
-              logs={logs}
-              loading={loading}
-            />
-          </TabsContent>
-        </Tabs>
-      </main>
+            {/* Advanced Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <AdvancedAnalytics logs={logs} agents={agents} />
+            </TabsContent>
+
+            {/* Logs Tab */}
+            <TabsContent value="logs" className="space-y-6">
+              <DetailedLogsWidget 
+                logs={logs}
+                loading={isLoading}
+                onExport={exportData}
+              />
+            </TabsContent>
+
+            {/* Alerts Tab */}
+            <TabsContent value="alerts" className="space-y-6">
+              <DetailedAlertsWidget 
+                alerts={logs.filter(log => (log.risk || 0) >= 80)}
+                loading={isLoading}
+                onExport={exportData}
+              />
+            </TabsContent>
+
+            {/* Agents Tab */}
+            <TabsContent value="agents" className="space-y-6">
+              <DetailedAgentsWidget 
+                agents={agents}
+                loading={isLoading}
+              />
+            </TabsContent>
+
+            {/* Risk Tab */}
+            <TabsContent value="risk" className="space-y-6">
+              <DetailedRiskWidget 
+                logs={logs}
+                loading={isLoading}
+              />
+            </TabsContent>
+          </Tabs>
+        </main>
+      </ResponsiveContainer>
     </div>
-  )
-}
+  );
+};
 
-// App Content Component
-function AppContent() {
-  const { user, isLoading, login, register } = useAuth()
-  const [showRegister, setShowRegister] = useState(false)
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-slate-300">
-            Please wait while initializing dashboard...
-          </p>
-        </motion.div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return showRegister ? (
-      <Register
-        onRegister={register}
-        onSwitchToLogin={() => setShowRegister(false)}
-        isLoading={isLoading}
-      />
-    ) : (
-      <Login
-        onLogin={login}
-        onSwitchToRegister={() => setShowRegister(true)}
-        isLoading={isLoading}
-      />
-    )
-  }
-
-  return <Dashboard />
-}
-
-// Main App Component
-function App() {
+// Wrap App with AuthProvider
+const AppWithAuth = () => {
   return (
     <AuthProvider>
-      <AppContent />
+      <App />
     </AuthProvider>
-  )
-}
+  );
+};
 
-export default App
-
+export default AppWithAuth;
