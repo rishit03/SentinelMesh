@@ -669,6 +669,7 @@ const ChartWidget = ({
   height = 300,
   className = ""
 }) => {
+  const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
   const renderChart = () => {
     switch (chartType) {
       case 'bar':
@@ -2138,7 +2139,8 @@ function App() {
 }
 
 function AppContent() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, login, register } = useAuth(); // Destructure login and register
+  const [showRegister, setShowRegister] = useState(false); // State to toggle between login/register
 
   if (isLoading) {
     return (
@@ -2157,16 +2159,20 @@ function AppContent() {
           </p>
         </motion.div>
       </div>
-    )
+    );
   }
 
   if (!user) {
-    return <Login />
+    return showRegister ? (
+      <Register onRegister={register} onSwitchToLogin={() => setShowRegister(false)} isLoading={isLoading} />
+    ) : (
+      <Login onLogin={login} onSwitchToRegister={() => setShowRegister(true)} isLoading={isLoading} />
+    );
   }
 
-  return <Dashboard />
+  return <Dashboard />;
 }
 
-export default App
+export default App;
 
 
