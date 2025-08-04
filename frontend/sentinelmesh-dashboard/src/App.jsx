@@ -1135,9 +1135,6 @@ const DetailedAgentsWidget = ({ agents = [], loading = false, onExport }) => {
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
-                      {agent.version}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
                       {new Date(agent.last_seen).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -1289,7 +1286,7 @@ const DetailedRiskWidget = ({ logs = [], loading = false, onExport }) => {
   );
 };
 
-const App = () => {
+const AppContent = () => {
   const { user, token, login, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [logs, setLogs] = useState([]);
@@ -1469,27 +1466,6 @@ const App = () => {
     link.download = filename;
     link.click();
   };
-
-  if (!token) {
-    return (
-      <AuthProvider>
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-          <Tabs defaultValue="login" className="w-[400px]">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-            <TabsContent value="login">
-              <Login />
-            </TabsContent>
-            <TabsContent value="register">
-              <Register />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </AuthProvider>
-    );
-  }
 
   return (
     <div className={`min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-50 transition-colors duration-300 ${darkMode ? 'dark' : ''}`}>
@@ -1826,6 +1802,37 @@ const App = () => {
         </main>
       </div>
     </div>
+  );
+};
+
+const App = () => {
+  const { token } = useAuth();
+
+  if (!token) {
+    return (
+      <AuthProvider>
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+          <Tabs defaultValue="login" className="w-[400px]">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Register</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
+              <Login />
+            </TabsContent>
+            <TabsContent value="register">
+              <Register />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </AuthProvider>
+    );
+  }
+
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 
