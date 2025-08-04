@@ -75,6 +75,9 @@ import AgentsPage from './pages/AgentsPage.jsx'
 import RiskPage from './pages/RiskPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
 
+// Import custom hooks
+import useLogsData from './hooks/useLogsData.js'
+
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
 // INLINED MobileHeader Component (as it was in your original App.jsx)
@@ -371,12 +374,9 @@ const ResponsiveContainer = ({
 
 // Main Dashboard Component with Tab Navigation
 const Dashboard = () => {
-  const { user, authenticatedFetch, logout } = useAuth()
-  const [logs, setLogs] = useState([])
-  const [alerts, setAlerts] = useState([])
+  const { user, logout } = useAuth()
+  const { logs, alerts, loading, isConnected, fetchData } = useLogsData();
   const [stats, setStats] = useState({})
-  const [loading, setLoading] = useState(true)
-  const [isConnected, setIsConnected] = useState(false)
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('sentinelmesh-dark-mode') === 'true' ||
@@ -410,121 +410,16 @@ const Dashboard = () => {
     localStorage.setItem('sentinelmesh-dark-mode', darkMode.toString())
   }, [darkMode])
 
-  // WebSocket connection
+  // Update stats whenever logs or alerts change
   useEffect(() => {
-    if (!user) return
-
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const wsUrl = `${wsProtocol}//sentinelmesh-api.onrender.com/ws/logs`
-    
-    let ws
-    let reconnectTimeout
-
-    const connect = () => {
-      try {
-        ws = new WebSocket(wsUrl)
-        
-        ws.onopen = () => {
-          console.log('WebSocket connected')
-          setIsConnected(true)
-        }
-        
-        ws.onmessage = (event) => {
-          try {
-            const newLog = JSON.parse(event.data)
-            setLogs(prevLogs => [newLog, ...prevLogs.slice(0, 99)]) // Keep last 100 logs
-            
-            // Add to alerts if high risk
-            if (newLog.risk >= 80) {
-              setAlerts(prevAlerts => [newLog, ...prevAlerts.slice(0, 49)]) // Keep last 50 alerts
-            }
-          } catch (error) {
-            console.error('Error parsing WebSocket message:', error)
-          }
-        }
-        
-        ws.onclose = () => {
-          console.log('WebSocket disconnected')
-          setIsConnected(false)
-          
-          // Attempt to reconnect after 3 seconds
-          reconnectTimeout = setTimeout(connect, 3000)
-        }
-        
-        ws.onerror = (error) => {
-          console.log('WebSocket error:', error)
-          setIsConnected(false)
-        }
-      } catch (error) {
-        console.error('Error creating WebSocket connection:', error)
-        setIsConnected(false)
-        reconnectTimeout = setTimeout(connect, 3000)
-      }
-    }
-
-    connect()
-
-    return () => {
-      if (reconnectTimeout) clearTimeout(reconnectTimeout)
-      if (ws) {
-        ws.close()
-      }
-    }
-  }, [user])
-
-  // Fetch data function
-  const fetchData = useCallback(async () => {
-    if (!user) return
-
-    try {
-      setLoading(true)
-      
-      // Fetch all data in parallel
-      const [logsResponse, alertsResponse] = await Promise.all([
-        authenticatedFetch('https://sentinelmesh-api.onrender.com/logs'),
-        authenticatedFetch('https://sentinelmesh-api.onrender.com/alerts?min_risk=80')
-      ])
-
-      if (logsResponse.ok) {
-        const logsData = await logsResponse.json()
-        setLogs(Array.isArray(logsData.logs) ? logsData.logs : []) // Added Array.isArray check
-      }
-
-      if (alertsResponse.ok) {
-        const alertsData = await alertsResponse.json()
-        setAlerts(Array.isArray(alertsData.alerts) ? alertsData.alerts : []) // Added Array.isArray check
-      }
-
-      // Mock stats for now
-      setStats({
-        systemStatus: 'Operational',
-        activeAgents: 2,
-        totalLogs: logs.length,
-        highRiskLogs: logs.filter(log => log.risk >= 80).length,
-        avgRisk: logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length) : 0,
-      })
-
-    } catch (error) {
-      console.error('Error fetching data:', error)
-      // Handle error, maybe show a message to the user
-    } finally {
-      setLoading(false)
-    }
-  }, [user, authenticatedFetch, logs.length]) // Added logs.length to dependencies for stats update
-
-  // Initial data fetch and auto-refresh setup
-  useEffect(() => {
-    fetchData()
-
-    let intervalId
-    if (autoRefresh) {
-      intervalId = setInterval(fetchData, 30000) // Refresh every 30 seconds
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId)
-    }
-  }, [fetchData, autoRefresh])
+    setStats({
+      systemStatus: isConnected ? 'Operational' : 'Disconnected',
+      activeAgents: logs.filter(log => log.sender && log.timestamp && (Date.now() - new Date(log.timestamp).getTime() < 300000)).length, // Agents active in last 5 mins
+      totalLogs: logs.length,
+      highRiskLogs: logs.filter(log => log.risk >= 80).length,
+      avgRisk: logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length) : 0,
+    });
+  }, [logs, alerts, isConnected]);
 
   const handleExport = useCallback((format) => {
     console.log(`Exporting logs as ${format}`);
