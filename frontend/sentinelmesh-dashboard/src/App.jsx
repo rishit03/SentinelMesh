@@ -1261,8 +1261,10 @@ const DashboardGrid = ({
                 animate={{ opacity: 1, scale: 1 }}
                 className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
               >
-                Edit Mode
-              </Badge>
+                <Badge variant="outline" className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
+                  Edit Mode
+                </Badge>
+              </motion.div>
             )}
             
             {saveStatus && (
