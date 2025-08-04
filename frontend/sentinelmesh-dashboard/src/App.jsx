@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence, useAnimation } from 'framer-motion'
 import {
   Satellite,
@@ -33,7 +33,7 @@ import {
   CheckCircle,
   Upload,
   RotateCcw,
-  Save // ADDED THIS IMPORT
+  Save
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -49,7 +49,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer as RechartsResponsiveContainer, // Renamed to avoid conflict
+  ResponsiveContainer as RechartsResponsiveContainer,
   LineChart,
   Line,
   PieChart,
@@ -65,6 +65,8 @@ import Register from './Register.jsx'
 import { AuthProvider, useAuth } from './AuthContext.jsx'
 import { Responsive, WidthProvider } from 'react-grid-layout'
 import './App.css'
+
+const ResponsiveGridLayout = WidthProvider(Responsive)
 
 // INLINED MobileHeader Component
 const MobileHeader = ({
@@ -361,51 +363,58 @@ const DEFAULT_LAYOUTS = {
     { i: 'recent-logs', x: 0, y: 2, w: 6, h: 4, minW: 4, minH: 3 },
     { i: 'security-alerts', x: 6, y: 2, w: 6, h: 4, minW: 4, minH: 3 },
     { i: 'agent-activity', x: 0, y: 6, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'risk-distribution', x: 6, y: 6, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'agent-status', x: 0, y: 10, w: 12, h: 4, minW: 6, minH: 3 }
+    { i: 'risk-distribution', x: 6, y: 6, w: 6, h: 4, minW: 4, minH: 3 }
   ],
   md: [
-    { i: 'total-logs', x: 0, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-    { i: 'active-alerts', x: 3, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-    { i: 'active-agents', x: 6, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-    { i: 'system-status', x: 9, y: 0, w: 3, h: 2, minW: 2, minH: 2 },
-    { i: 'recent-logs', x: 0, y: 2, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'security-alerts', x: 6, y: 2, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'agent-activity', x: 0, y: 6, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'risk-distribution', x: 6, y: 6, w: 6, h: 4, minW: 4, minH: 3 },
-    { i: 'agent-status', x: 0, y: 10, w: 12, h: 4, minW: 6, minH: 3 }
+    { i: 'total-logs', x: 0, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+    { i: 'active-alerts', x: 4, y: 0, w: 4, h: 2, minW: 3, minH: 2 },
+    { i: 'active-agents', x: 0, y: 2, w: 4, h: 2, minW: 3, minH: 2 },
+    { i: 'system-status', x: 4, y: 2, w: 4, h: 2, minW: 3, minH: 2 },
+    { i: 'recent-logs', x: 0, y: 4, w: 8, h: 4, minW: 6, minH: 3 },
+    { i: 'security-alerts', x: 0, y: 8, w: 8, h: 4, minW: 6, minH: 3 },
+    { i: 'agent-activity', x: 0, y: 12, w: 8, h: 4, minW: 6, minH: 3 },
+    { i: 'risk-distribution', x: 0, y: 16, w: 8, h: 4, minW: 6, minH: 3 }
   ],
   sm: [
-    { i: 'total-logs', x: 0, y: 0, w: 6, h: 2, minW: 3, minH: 2 },
-    { i: 'active-alerts', x: 6, y: 0, w: 6, h: 2, minW: 3, minH: 2 },
-    { i: 'active-agents', x: 0, y: 2, w: 6, h: 2, minW: 3, minH: 2 },
-    { i: 'system-status', x: 6, y: 2, w: 6, h: 2, minW: 3, minH: 2 },
-    { i: 'recent-logs', x: 0, y: 4, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: 'security-alerts', x: 0, y: 8, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: 'agent-activity', x: 0, y: 12, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: 'risk-distribution', x: 0, y: 16, w: 12, h: 4, minW: 6, minH: 3 },
-    { i: 'agent-status', x: 0, y: 20, w: 12, h: 4, minW: 6, minH: 3 }
+    { i: 'total-logs', x: 0, y: 0, w: 6, h: 2, minW: 4, minH: 2 },
+    { i: 'active-alerts', x: 0, y: 2, w: 6, h: 2, minW: 4, minH: 2 },
+    { i: 'active-agents', x: 0, y: 4, w: 6, h: 2, minW: 4, minH: 2 },
+    { i: 'system-status', x: 0, y: 6, w: 6, h: 2, minW: 4, minH: 2 },
+    { i: 'recent-logs', x: 0, y: 8, w: 6, h: 4, minW: 4, minH: 3 },
+    { i: 'security-alerts', x: 0, y: 12, w: 6, h: 4, minW: 4, minH: 3 },
+    { i: 'agent-activity', x: 0, y: 16, w: 6, h: 4, minW: 4, minH: 3 },
+    { i: 'risk-distribution', x: 0, y: 20, w: 6, h: 4, minW: 4, minH: 3 }
   ],
   xs: [
-    { i: 'total-logs', x: 0, y: 0, w: 4, h: 2, minW: 2, minH: 2 },
-    { i: 'active-alerts', x: 0, y: 2, w: 4, h: 2, minW: 2, minH: 2 },
-    { i: 'active-agents', x: 0, y: 4, w: 4, h: 2, minW: 2, minH: 2 },
-    { i: 'system-status', x: 0, y: 6, w: 4, h: 2, minW: 2, minH: 2 },
+    { i: 'total-logs', x: 0, y: 0, w: 4, h: 2, minW: 4, minH: 2 },
+    { i: 'active-alerts', x: 0, y: 2, w: 4, h: 2, minW: 4, minH: 2 },
+    { i: 'active-agents', x: 0, y: 4, w: 4, h: 2, minW: 4, minH: 2 },
+    { i: 'system-status', x: 0, y: 6, w: 4, h: 2, minW: 4, minH: 2 },
     { i: 'recent-logs', x: 0, y: 8, w: 4, h: 4, minW: 4, minH: 3 },
     { i: 'security-alerts', x: 0, y: 12, w: 4, h: 4, minW: 4, minH: 3 },
     { i: 'agent-activity', x: 0, y: 16, w: 4, h: 4, minW: 4, minH: 3 },
-    { i: 'risk-distribution', x: 0, y: 20, w: 4, h: 4, minW: 4, minH: 3 },
-    { i: 'agent-status', x: 0, y: 24, w: 4, h: 4, minW: 4, minH: 3 }
+    { i: 'risk-distribution', x: 0, y: 20, w: 4, h: 4, minW: 4, minH: 3 }
+  ],
+  xxs: [
+    { i: 'total-logs', x: 0, y: 0, w: 2, h: 2, minW: 2, minH: 2 },
+    { i: 'active-alerts', x: 0, y: 2, w: 2, h: 2, minW: 2, minH: 2 },
+    { i: 'active-agents', x: 0, y: 4, w: 2, h: 2, minW: 2, minH: 2 },
+    { i: 'system-status', x: 0, y: 6, w: 2, h: 2, minW: 2, minH: 2 },
+    { i: 'recent-logs', x: 0, y: 8, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'security-alerts', x: 0, y: 12, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'agent-activity', x: 0, y: 16, w: 2, h: 4, minW: 2, minH: 3 },
+    { i: 'risk-distribution', x: 0, y: 20, w: 2, h: 4, minW: 2, minH: 3 }
   ]
 };
 
 const STORAGE_KEY = 'sentinelmesh-dashboard-layout';
-const USER_PREFERENCES_KEY = 'sentinelmesh-user-preferences';
 
 const useLayoutPersistence = (userId) => {
   const [layouts, setLayouts] = useState(DEFAULT_LAYOUTS);
   const [isLoading, setIsLoading] = useState(true);
   const [lastSaved, setLastSaved] = useState(null);
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Generate user-specific storage key
   const getUserStorageKey = useCallback((key) => {
@@ -448,7 +457,10 @@ const useLayoutPersistence = (userId) => {
   }, [getUserStorageKey]);
 
   // Save layouts to localStorage
-  const saveLayouts = useCallback((newLayouts) => {
+  const saveLayouts = useCallback(async (newLayouts) => {
+    if (!userId) return;
+    
+    setSaveStatus('saving');
     try {
       const userLayoutKey = getUserStorageKey(STORAGE_KEY);
       const timestamp = new Date();
@@ -458,855 +470,779 @@ const useLayoutPersistence = (userId) => {
       
       setLayouts(newLayouts);
       setLastSaved(timestamp);
+      setHasUnsavedChanges(false);
+      setSaveStatus('saved');
       
-      return true;
+      // Reset save status after 2 seconds
+      setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (error) {
       console.error('Failed to save layouts:', error);
-      return false;
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus('idle'), 3000);
     }
-  }, [getUserStorageKey]);
+  }, [userId, getUserStorageKey]);
 
-  // Reset to default layouts
-  const resetLayouts = useCallback(() => {
-    try {
-      const userLayoutKey = getUserStorageKey(STORAGE_KEY);
-      
-      // Remove saved layouts from localStorage
-      localStorage.removeItem(userLayoutKey);
-      localStorage.removeItem(`${userLayoutKey}-timestamp`);
-      
-      setLayouts(DEFAULT_LAYOUTS);
-      setLastSaved(null);
-      
-      return true;
-    } catch (error) {
-      console.error('Failed to reset layouts:', error);
-      return false;
-    }
-  }, [getUserStorageKey]);
-
-  // Update layouts (without saving)
+  // Update layouts and mark as unsaved
   const updateLayouts = useCallback((newLayouts) => {
     setLayouts(newLayouts);
+    setHasUnsavedChanges(true);
   }, []);
 
-  // Export layouts for backup
+  // Export layouts
   const exportLayouts = useCallback(() => {
-    const exportData = {
+    const dataToExport = {
       layouts,
       timestamp: new Date().toISOString(),
-      userId,
+      username: userId,
       version: '1.0'
     };
     
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
       type: 'application/json'
     });
     
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sentinelmesh-layout-${userId || 'default'}-${Date.now()}.json`;
+    a.download = `sentinelmesh-layouts-${userId}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [layouts, userId]);
 
-  // Import layouts from file
+  // Import layouts
   const importLayouts = useCallback((file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
       reader.onload = (e) => {
         try {
-          const importData = JSON.parse(e.target.result);
-          
-          if (importData.layouts && typeof importData.layouts === 'object') {
-            const mergedLayouts = { ...DEFAULT_LAYOUTS, ...importData.layouts };
-            const success = saveLayouts(mergedLayouts);
-            
-            if (success) {
-              resolve(mergedLayouts);
-            } else {
-              reject(new Error('Failed to save imported layouts'));
-            }
+          const imported = JSON.parse(e.target.result);
+          if (imported.layouts) {
+            saveLayouts(imported.layouts);
+            resolve(imported);
           } else {
             reject(new Error('Invalid layout file format'));
           }
         } catch (error) {
-          reject(new Error('Failed to parse layout file'));
+          reject(error);
         }
       };
-      
-      reader.onerror = () => {
-        reject(new Error('Failed to read layout file'));
-      };
-      
+      reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsText(file);
     });
   }, [saveLayouts]);
 
-  // Save user preferences (separate from layouts)
-  const saveUserPreferences = useCallback((preferences) => {
-    try {
-      const userPrefKey = getUserStorageKey(USER_PREFERENCES_KEY);
-      localStorage.setItem(userPrefKey, JSON.stringify(preferences));
-      return true;
-    } catch (error) {
-      console.error('Failed to save user preferences:', error);
-      return false;
-    }
-  }, [getUserStorageKey]);
-
-  // Load user preferences
-  const loadUserPreferences = useCallback(() => {
-    try {
-      const userPrefKey = getUserStorageKey(USER_PREFERENCES_KEY);
-      const savedPreferences = localStorage.getItem(userPrefKey);
-      
-      if (savedPreferences) {
-        return JSON.parse(savedPreferences);
-      }
-    }
-    catch (error) {
-      console.error('Failed to load user preferences:', error);
-    }
-    
-    return null;
-  }, [getUserStorageKey]);
-
-  // Check if layouts have been modified since last save
-  const hasUnsavedChanges = useCallback((currentLayouts) => {
-    try {
-      const userLayoutKey = getUserStorageKey(STORAGE_KEY);
-      const savedLayouts = localStorage.getItem(userLayoutKey);
-      
-      if (!savedLayouts) return true;
-      
-      const parsedSavedLayouts = JSON.parse(savedLayouts);
-      return JSON.stringify(currentLayouts) !== JSON.stringify(parsedSavedLayouts);
-    } catch (error) {
-      return true;
-    }
-  }, [getUserStorageKey]);
-
   return {
     layouts,
     isLoading,
+    saveStatus,
     lastSaved,
+    hasUnsavedChanges,
     saveLayouts,
-    resetLayouts,
     updateLayouts,
     exportLayouts,
-    importLayouts,
-    saveUserPreferences,
-    loadUserPreferences,
-    hasUnsavedChanges,
-    defaultLayouts: DEFAULT_LAYOUTS
+    importLayouts
   };
 };
 
-// INLINED StatsWidget Component
-const StatsWidget = ({
-  title,
-  value,
-  icon: Icon,
-  color,
-  hoverText,
-  isHovered,
-  onHover,
-  onHoverEnd,
-  className = ""
-}) => {
+// INLINED Widget Components with improved styling and overflow handling
+
+// StatsWidget Component
+const StatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, subtitle, loading = false }) => {
   return (
-    <motion.div
-      onHoverStart={onHover}
-      onHoverEnd={onHoverEnd}
-      whileHover={{ y: -5, scale: 1.02 }}
-      transition={{ type: "spring", stiffness: 300 }}
-      className={className}
-    >
-      <Card className={`relative overflow-hidden group hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br ${color} text-white cursor-pointer`}>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-white/80 text-sm font-medium">{title}</p>
-              <p className="text-3xl font-bold">
-                <AnimatedCounter value={value} />
-              </p>
-              {isHovered && hoverText && (
-                <motion.p 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-xs text-white/70 mt-1"
-                >
-                  {hoverText}
-                </motion.p>
-              )}
+    <Card className="h-full overflow-hidden">
+      <CardContent className="p-4 h-full flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2">
+            <div className={`p-2 rounded-lg bg-${color}-100 dark:bg-${color}-900/30`}>
+              <Icon className={`h-4 w-4 text-${color}-600 dark:text-${color}-400`} />
             </div>
-            <motion.div
-              animate={isHovered ? { rotate: 360 } : {}}
-              transition={{ duration: 0.5 }}
-            >
-              <Icon className="h-8 w-8 text-white/70" />
-            </motion.div>
+            <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300 truncate">
+              {title}
+            </h3>
           </div>
-          <motion.div 
-            className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
-            layoutId="cardHover"
-          />
-        </CardContent>
-      </Card>
-    </motion.div>
+          {trend && (
+            <Badge variant={trend > 0 ? "default" : "secondary"} className="text-xs">
+              {trend > 0 ? '+' : ''}{trend}%
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">
+            {loading ? (
+              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-8 w-16 rounded" />
+            ) : (
+              <AnimatedCounter value={value} />
+            )}
+          </div>
+          {subtitle && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+              {subtitle}
+            </p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
-// INLINED ChartWidget Component
-const ChartWidget = ({
-  title,
-  description,
-  icon: Icon,
-  chartType = 'bar',
-  data = [],
-  dataKey,
-  nameKey = 'name',
-  height = 300,
-  className = ""
+// ChartWidget Component with improved responsive handling
+const ChartWidget = ({ 
+  title, 
+  data, 
+  type = 'bar', 
+  color = '#8884d8', 
+  subtitle,
+  loading = false,
+  height = 200
 }) => {
-  const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
   const renderChart = () => {
-    switch (chartType) {
-      case 'bar':
-        return (
-          <RechartsResponsiveContainer width="100%" height={height}>
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={nameKey} />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey={dataKey} fill="#8b5cf6" />
-            </BarChart>
-          </RechartsResponsiveContainer>
-        );
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-32 w-full rounded" />
+        </div>
+      );
+    }
 
+    if (!data || data.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+          <div className="text-center">
+            <BarChart3 className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No data available</p>
+          </div>
+        </div>
+      );
+    }
+
+    const chartProps = {
+      data,
+      margin: { top: 5, right: 5, left: 5, bottom: 5 }
+    };
+
+    switch (type) {
       case 'line':
         return (
-          <RechartsResponsiveContainer width="100%" height={height}>
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={nameKey} />
-              <YAxis />
+          <RechartsResponsiveContainer width="100%" height="100%">
+            <LineChart {...chartProps}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="name" fontSize={12} />
+              <YAxis fontSize={12} />
               <Tooltip />
-              <Line type="monotone" dataKey={dataKey} stroke="#8b5cf6" strokeWidth={2} />
+              <Line type="monotone" dataKey="value" stroke={color} strokeWidth={2} />
             </LineChart>
           </RechartsResponsiveContainer>
         );
-
       case 'area':
         return (
-          <RechartsResponsiveContainer width="100%" height={height}>
-            <AreaChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey={nameKey} />
-              <YAxis />
+          <RechartsResponsiveContainer width="100%" height="100%">
+            <AreaChart {...chartProps}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="name" fontSize={12} />
+              <YAxis fontSize={12} />
               <Tooltip />
-              <Area type="monotone" dataKey={dataKey} stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.3} />
+              <Area type="monotone" dataKey="value" stroke={color} fill={color} fillOpacity={0.3} />
             </AreaChart>
           </RechartsResponsiveContainer>
         );
-
       case 'pie':
         return (
-          <RechartsResponsiveContainer width="100%" height={height}>
+          <RechartsResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey={dataKey}
-              >
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
+                outerRadius={60}
+                fill={color}
+                dataKey="value"
+                label={({ name, value }) => `${name}: ${value}`}
+              />
               <Tooltip />
             </PieChart>
           </RechartsResponsiveContainer>
         );
-
       default:
-        return <div className="flex items-center justify-center h-full text-slate-500">Unsupported chart type</div>;
+        return (
+          <RechartsResponsiveContainer width="100%" height="100%">
+            <BarChart {...chartProps}>
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <XAxis dataKey="name" fontSize={12} />
+              <YAxis fontSize={12} />
+              <Tooltip />
+              <Bar dataKey="value" fill={color} />
+            </BarChart>
+          </RechartsResponsiveContainer>
+        );
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={className}
-    >
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {Icon && <Icon className="h-5 w-5" />}
-            {title}
-          </CardTitle>
-          {description && (
-            <CardDescription>
-              {description}
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div style={{ height: height }}>
-            {data.length > 0 ? (
-              renderChart()
-            ) : (
-              <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
-                <div className="text-center">
-                  {Icon && <Icon className="h-12 w-12 mx-auto mb-4 opacity-50" />}
-                  <p>No data available</p>
-                  <p className="text-sm">Data will appear here when available</p>
-                </div>
-              </div>
+    <Card className="h-full overflow-hidden">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium truncate">{title}</CardTitle>
+            {subtitle && (
+              <CardDescription className="text-xs truncate">{subtitle}</CardDescription>
             )}
           </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <div style={{ height: `${height}px` }} className="w-full">
+          {renderChart()}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
-// INLINED LogsWidget Component
-const LogsWidget = ({
-  logs = [],
-  title = "Recent Logs",
-  description = "Real-time log stream from your AI agents",
-  lastUpdated,
+// LogsWidget Component with improved overflow handling
+const LogsWidget = ({ 
+  title = "Recent Logs", 
+  logs = [], 
+  loading = false, 
   onExport,
-  showDetails = true,
-  maxHeight = 400,
-  className = ""
+  maxHeight = 300
 }) => {
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [riskFilter, setRiskFilter] = useState([0]);
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter(log => {
+      const matchesSearch = !searchTerm || 
+        log.payload?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.sender?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRisk = log.risk >= riskFilter[0];
+      return matchesSearch && matchesRisk;
+    });
+  }, [logs, searchTerm, riskFilter]);
+
+  const formatTime = (timestamp) => {
+    try {
+      return new Date(timestamp).toLocaleTimeString();
+    } catch {
+      return 'Invalid time';
+    }
   };
 
-  const getRiskBadgeColor = (risk) => {
-    if (risk >= 90) return 'bg-red-500 hover:bg-red-600';
-    if (risk >= 70) return 'bg-orange-500 hover:bg-orange-600';
-    if (risk >= 50) return 'bg-yellow-500 hover:bg-yellow-600';
-    return 'bg-green-500 hover:bg-green-600';
+  const getRiskColor = (risk) => {
+    if (risk >= 80) return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
+    if (risk >= 50) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300';
+    return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300';
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={className}
-    >
-      <Card className="h-full">
-        <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="h-full overflow-hidden flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
+        <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5" />
-              {title}
-            </CardTitle>
-            <CardDescription>
-              {description}
-              {lastUpdated && (
-                <span className="ml-2 text-xs">
-                  Last updated: {formatTimestamp(lastUpdated)}
-                </span>
-              )}
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <CardDescription className="text-xs">
+              Real-time log stream from your AI agents
             </CardDescription>
           </div>
-          {onExport && (
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => onExport(logs, 'logs', 'json')}
-                variant="outline"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export JSON
-              </Button>
-              <Button
-                onClick={() => onExport(logs, 'logs', 'csv')}
-                variant="outline"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
+          <div className="flex items-center space-x-2">
+            {onExport && (
+              <>
+                <Button size="sm" variant="outline" onClick={() => onExport('json')}>
+                  <Download className="h-3 w-3 mr-1" />
+                  JSON
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => onExport('csv')}>
+                  <Download className="h-3 w-3 mr-1" />
+                  CSV
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex items-center space-x-2 mt-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-slate-400" />
+            <Input
+              placeholder="Search logs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-7 h-8 text-xs"
+            />
+          </div>
+          <div className="flex items-center space-x-1">
+            <Filter className="h-3 w-3 text-slate-400" />
+            <Slider
+              value={riskFilter}
+              onValueChange={setRiskFilter}
+              max={100}
+              step={10}
+              className="w-16"
+            />
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="p-0 flex-1 overflow-hidden">
+        <div 
+          className="overflow-y-auto h-full px-4 pb-4"
+          style={{ maxHeight: `${maxHeight}px` }}
+        >
+          {loading ? (
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-slate-500 dark:text-slate-400">
+              <div className="text-center">
+                <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No logs available</p>
+                <p className="text-xs">Logs will appear here when available</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredLogs.map((log, index) => (
+                <motion.div
+                  key={log.id || index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center space-x-2 min-w-0 flex-1">
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate">
+                        {log.sender}
+                      </span>
+                      <span className="text-xs text-slate-400">→</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {log.receiver || 'SentinelMesh-Dashboard'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <span className="text-xs text-slate-400">
+                        {formatTime(log.timestamp)}
+                      </span>
+                      <Badge className={`text-xs px-2 py-0 ${getRiskColor(log.risk || 0)}`}>
+                        Risk: {log.risk || 0}%
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-slate-700 dark:text-slate-200 mb-1 break-words">
+                    {log.payload}
+                  </p>
+                  
+                  {log.context && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 break-words">
+                      Context: {log.context}
+                    </p>
+                  )}
+                </motion.div>
+              ))}
             </div>
           )}
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4 overflow-y-auto" style={{ maxHeight: maxHeight }}>
-            <AnimatePresence>
-              {logs.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-8 text-slate-500 dark:text-slate-400"
-                >
-                  <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No logs available</p>
-                  <p className="text-sm">Logs will appear here in real-time</p>
-                </motion.div>
-              ) : (
-                logs.map((log, index) => (
-                  <motion.div
-                    key={log.id || index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="flex items-start justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge variant="outline" className="text-xs">
-                          {log.sender}
-                        </Badge>
-                        {log.receiver && (
-                          <>
-                            <span className="text-slate-400">→</span>
-                            <Badge variant="outline" className="text-xs">
-                              {log.receiver}
-                            </Badge>
-                          </>
-                        )}
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {formatTimestamp(log.timestamp)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                        {log.payload || log.context || 'No message content'}
-                      </p>
-                      {showDetails && log.context && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Context: {log.context}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 ml-4">
-                      {log.risk !== undefined && (
-                        <Badge className={`${getRiskBadgeColor(log.risk)} text-white`}>
-                          Risk: {log.risk}%
-                        </Badge>
-                      )}
-                    </div>
-                  </motion.div>
-                ))
-              )}
-            </AnimatePresence>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
-// INLINED AlertsWidget Component
-const AlertsWidget = ({
-  alerts = [],
-  title = "Security Alerts",
-  description = "High-risk events requiring attention",
-  minRisk = 80,
+// AlertsWidget Component
+const AlertsWidget = ({ 
+  title = "Security Alerts", 
+  alerts = [], 
+  loading = false,
   onExport,
-  showDetails = true,
-  maxHeight = 400,
-  className = ""
+  maxHeight = 300
 }) => {
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const getRiskBadgeColor = (risk) => {
-    if (risk >= 90) return 'bg-red-500 hover:bg-red-600';
-    if (risk >= 70) return 'bg-orange-500 hover:bg-orange-600';
-    if (risk >= 50) return 'bg-yellow-500 hover:bg-yellow-600';
-    return 'bg-green-500 hover:bg-green-600';
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={className}
-    >
-      <Card className="h-full">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              {title}
-            </CardTitle>
-            <CardDescription>
-              {description} (Risk ≥ {minRisk}%)
-            </CardDescription>
-          </div>
-          {onExport && (
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => onExport(alerts, 'alerts', 'json')}
-                variant="outline"
-                size="sm"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4 overflow-y-auto" style={{ maxHeight: maxHeight }}>
-            <AnimatePresence>
-              {alerts.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-8 text-slate-500 dark:text-slate-400"
-                >
-                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No active alerts</p>
-                  <p className="text-sm">Your system is secure</p>
-                </motion.div>
-              ) : (
-                alerts.map((alert, index) => (
-                  <motion.div
-                    key={alert.id || index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="flex items-start justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                        <Badge variant="outline" className="text-xs border-red-300 text-red-700">
-                          {alert.sender}
-                        </Badge>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          {formatTimestamp(alert.timestamp)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                        {alert.payload || alert.context || 'High-risk activity detected'}
-                      </p>
-                      {showDetails && alert.context && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Context: {alert.context}
-                        </p>
-                      )}
-                    </div>
-                    <Badge className={`${getRiskBadgeColor(alert.risk)} text-white ml-4`}>
-                      {alert.risk}%
-                    </Badge>
-                  </motion.div>
-                ))
-              )}
-            </AnimatePresence>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-// INLINED AgentsWidget Component (assuming it's similar to Logs/Alerts and was part of the original plan)
-const AgentsWidget = ({
-  agentStats = {},
-  title = "Agent Status",
-  description = "Overview of all active agents in your organization",
-  maxHeight = 400,
-  className = ""
-}) => {
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const agents = Object.values(agentStats);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={className}
-    >
-      <Card className="h-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            {title}
-          </CardTitle>
-          <CardDescription>
-            {description}
+  if (loading) {
+    return (
+      <Card className="h-full overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <CardDescription className="text-xs">
+            High-risk events requiring attention (Risk ≥ 80%)
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4 overflow-y-auto" style={{ maxHeight: maxHeight }}>
-            <AnimatePresence>
-              {agents.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-8 text-slate-500 dark:text-slate-400"
-                >
-                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No agents found</p>
-                  <p className="text-sm">Agents will appear here when active</p>
-                </motion.div>
-              ) : (
-                agents.map((agent, index) => (
-                  <motion.div
-                    key={agent.name || index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ delay: index * 0.05 }}
-                    className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold text-sm">
-                        {agent.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{agent.name}</p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">Messages: {agent.count}</p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      Last Seen: {formatTimestamp(agent.lastSeen)}
-                    </Badge>
-                  </motion.div>
-                ))
-              )}
-            </AnimatePresence>
+        <CardContent className="p-4">
+          <div className="space-y-2">
+            {[...Array(2)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    );
+  }
+
+  if (alerts.length === 0) {
+    return (
+      <Card className="h-full overflow-hidden">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-medium">{title}</CardTitle>
+              <CardDescription className="text-xs">
+                High-risk events requiring attention (Risk ≥ 80%)
+              </CardDescription>
+            </div>
+            {onExport && (
+              <Button size="sm" variant="outline" onClick={onExport}>
+                <Download className="h-3 w-3 mr-1" />
+                Export
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="p-4 flex-1 flex items-center justify-center">
+          <div className="text-center text-slate-500 dark:text-slate-400">
+            <Shield className="h-12 w-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm font-medium mb-1">No active alerts</p>
+            <p className="text-xs">Your system is secure</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="h-full overflow-hidden flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <CardDescription className="text-xs">
+              High-risk events requiring attention (Risk ≥ 80%)
+            </CardDescription>
+          </div>
+          {onExport && (
+            <Button size="sm" variant="outline" onClick={onExport}>
+              <Download className="h-3 w-3 mr-1" />
+              Export
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      
+      <CardContent className="p-0 flex-1 overflow-hidden">
+        <div 
+          className="overflow-y-auto h-full px-4 pb-4"
+          style={{ maxHeight: `${maxHeight}px` }}
+        >
+          <div className="space-y-2">
+            {alerts.map((alert, index) => (
+              <motion.div
+                key={alert.id || index}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+              >
+                <div className="flex items-start space-x-3">
+                  <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-red-800 dark:text-red-200 truncate">
+                        {alert.sender}
+                      </span>
+                      <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 text-xs">
+                        Risk: {alert.risk}%
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-red-700 dark:text-red-300 mb-1 break-words">
+                      {alert.payload}
+                    </p>
+                    {alert.context && (
+                      <p className="text-xs text-red-600 dark:text-red-400 break-words">
+                        {alert.context}
+                      </p>
+                    )}
+                    <p className="text-xs text-red-500 dark:text-red-400 mt-1">
+                      {new Date(alert.timestamp).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
-// Make ResponsiveGridLayout responsive
-const ResponsiveGridLayout = WidthProvider(Responsive);
-
-// INLINED DashboardGrid Component
-const DashboardGrid = ({
-  logs = [],
-  alerts = [],
-  agentStats = {},
-  agentChartData = [],
-  riskChartData = [],
-  lastUpdated,
-  downloadData,
-  showDetails = true,
-  minRisk = 80,
-  hoveredCard,
-  setHoveredCard,
-  user
+// AgentsWidget Component
+const AgentsWidget = ({ 
+  title = "Agent Activity", 
+  agents = [], 
+  loading = false,
+  maxHeight = 300
 }) => {
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [saveStatus, setSaveStatus] = useState(null); // 'saving', 'saved', 'error'
-  const [showImportDialog, setShowImportDialog] = useState(false);
+  const agentData = useMemo(() => {
+    if (!agents || agents.length === 0) return [];
+    
+    // Group logs by sender (agent)
+    const agentMap = {};
+    agents.forEach(log => {
+      if (!agentMap[log.sender]) {
+        agentMap[log.sender] = {
+          name: log.sender,
+          count: 0,
+          lastSeen: log.timestamp,
+          avgRisk: 0,
+          totalRisk: 0
+        };
+      }
+      agentMap[log.sender].count++;
+      agentMap[log.sender].totalRisk += (log.risk || 0);
+      if (new Date(log.timestamp) > new Date(agentMap[log.sender].lastSeen)) {
+        agentMap[log.sender].lastSeen = log.timestamp;
+      }
+    });
 
-  // Use the layout persistence hook
+    // Calculate average risk and convert to array
+    return Object.values(agentMap).map(agent => ({
+      ...agent,
+      avgRisk: agent.count > 0 ? Math.round(agent.totalRisk / agent.count) : 0
+    })).sort((a, b) => b.count - a.count);
+  }, [agents]);
+
+  const chartData = useMemo(() => {
+    return agentData.slice(0, 5).map(agent => ({
+      name: agent.name.length > 10 ? agent.name.substring(0, 10) + '...' : agent.name,
+      value: agent.count
+    }));
+  }, [agentData]);
+
+  return (
+    <Card className="h-full overflow-hidden flex flex-col">
+      <CardHeader className="pb-2 flex-shrink-0">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <CardDescription className="text-xs">
+          Message volume by agent
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="p-4 flex-1 overflow-hidden">
+        {loading ? (
+          <div className="animate-pulse space-y-2">
+            <div className="bg-slate-200 dark:bg-slate-700 h-32 rounded" />
+            <div className="bg-slate-200 dark:bg-slate-700 h-16 rounded" />
+          </div>
+        ) : agentData.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
+            <div className="text-center">
+              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No agent activity</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4 h-full">
+            {/* Chart */}
+            <div className="h-32">
+              <ChartWidget
+                data={chartData}
+                type="bar"
+                color="#8b5cf6"
+                height={120}
+              />
+            </div>
+            
+            {/* Agent List */}
+            <div 
+              className="overflow-y-auto"
+              style={{ maxHeight: `${maxHeight - 160}px` }}
+            >
+              <div className="space-y-2">
+                {agentData.slice(0, 10).map((agent, index) => (
+                  <div
+                    key={agent.name}
+                    className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded text-xs"
+                  >
+                    <div className="flex items-center space-x-2 min-w-0 flex-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0" />
+                      <span className="font-medium truncate">{agent.name}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 flex-shrink-0">
+                      <Badge variant="outline" className="text-xs">
+                        {agent.count}
+                      </Badge>
+                      <Badge 
+                        className={`text-xs ${
+                          agent.avgRisk >= 80 ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' :
+                          agent.avgRisk >= 50 ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                          'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                        }`}
+                      >
+                        {agent.avgRisk}%
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// INLINED DashboardGrid Component with improved layout settings
+const DashboardGrid = ({ 
+  logs = [], 
+  alerts = [], 
+  stats = {}, 
+  loading = false, 
+  onRefresh,
+  className = ""
+}) => {
+  const { user } = useAuth();
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   const {
     layouts,
-    isLoading,
+    isLoading: layoutsLoading,
+    saveStatus,
     lastSaved,
+    hasUnsavedChanges,
     saveLayouts,
-    resetLayouts,
     updateLayouts,
     exportLayouts,
-    importLayouts,
-    hasUnsavedChanges
+    importLayouts
   } = useLayoutPersistence(user?.username);
 
-  // Breakpoints for responsive design
-  const breakpoints = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
-  const cols = { lg: 12, md: 12, sm: 12, xs: 4, xxs: 2 };
-
-  const handleLayoutChange = useCallback((layout, newLayouts) => {
-    updateLayouts(newLayouts);
-  }, [updateLayouts]);
-
-  const handleSaveLayout = async () => {
-    setSaveStatus('saving');
-    
-    try {
-      const success = saveLayouts(layouts);
-      
-      if (success) {
-        setSaveStatus('saved');
-        setIsEditMode(false);
-        
-        // Clear status after 3 seconds
-        setTimeout(() => setSaveStatus(null), 3000);
-      } else {
-        setSaveStatus('error');
-        setTimeout(() => setSaveStatus(null), 3000);
-      }
-    } catch (error) {
-      console.error('Failed to save layout:', error);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus(null), 3000);
-    }
+  const handleLayoutChange = (layout, layouts) => {
+    updateLayouts(layouts);
   };
 
-  const handleResetLayout = async () => {
-    try {
-      const success = resetLayouts();
-      
-      if (success) {
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus(null), 3000);
-      } else {
-        setSaveStatus('error');
-        setTimeout(() => setSaveStatus(null), 3000);
-      }
-    } catch (error) {
-      console.error('Failed to reset layout:', error);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus(null), 3000);
-    }
+  const handleSaveLayout = () => {
+    saveLayouts(layouts);
   };
 
-  const handleImportLayout = async (event) => {
+  const handleResetLayout = () => {
+    updateLayouts(DEFAULT_LAYOUTS);
+  };
+
+  const handleExportLayout = () => {
+    exportLayouts();
+  };
+
+  const handleImportLayout = (event) => {
     const file = event.target.files[0];
-    if (!file) return;
-
-    try {
-      setSaveStatus('saving');
-      await importLayouts(file);
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus(null), 3000);
-    } catch (error) {
-      console.error('Failed to import layout:', error);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus(null), 3000);
+    if (file) {
+      importLayouts(file)
+        .then(() => {
+          console.log('Layout imported successfully');
+        })
+        .catch((error) => {
+          console.error('Failed to import layout:', error);
+        });
     }
-
-    // Reset file input
-    event.target.value = '';
   };
 
-  const getSystemStatus = () => {
-    if (alerts.length > 0) return 'warning';
-    return 'online';
-  };
-
-  const formatLastSaved = (date) => {
-    if (!date) return 'Never';
+  // Prepare chart data
+  const agentActivityData = useMemo(() => {
+    if (!logs || logs.length === 0) return [];
     
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
+    const agentCounts = {};
+    logs.forEach(log => {
+      agentCounts[log.sender] = (agentCounts[log.sender] || 0) + 1;
+    });
+    
+    return Object.entries(agentCounts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  }, [logs]);
 
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
-  };
+  const riskDistributionData = useMemo(() => {
+    if (!logs || logs.length === 0) return [];
+    
+    const riskRanges = {
+      'Low (0-30)': 0,
+      'Medium (31-70)': 0,
+      'High (71-100)': 0
+    };
+    
+    logs.forEach(log => {
+      const risk = log.risk || 0;
+      if (risk <= 30) riskRanges['Low (0-30)']++;
+      else if (risk <= 70) riskRanges['Medium (31-70)']++;
+      else riskRanges['High (71-100)']++;
+    });
+    
+    return Object.entries(riskRanges).map(([name, value]) => ({ name, value }));
+  }, [logs]);
 
-  // Show loading state while layouts are being loaded
-  if (isLoading) {
+  if (layoutsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center"
-        >
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 dark:text-slate-400">Loading dashboard layout...</p>
-        </motion.div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Dashboard Controls */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-200 dark:border-slate-700 gap-4"
-      >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              Dashboard Layout
-            </h2>
-            {lastSaved && (
-              <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Last saved: {formatLastSaved(lastSaved)}
-              </p>
-            )}
-          </div>
+    <div className={`space-y-4 ${className}`}>
+      {/* Control Panel */}
+      <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center space-x-4">
+          <Button
+            onClick={() => setIsEditMode(!isEditMode)}
+            variant={isEditMode ? "default" : "outline"}
+            size="sm"
+          >
+            {isEditMode ? <Eye className="h-4 w-4 mr-2" /> : <Settings className="h-4 w-4 mr-2" />}
+            {isEditMode ? 'Exit Edit' : 'Customize'}
+          </Button>
           
-          <div className="flex items-center gap-2">
-            {isEditMode && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-              >
-                <Badge variant="outline" className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
-                  Edit Mode
-                </Badge>
-              </motion.div>
-            )}
-            
-            {saveStatus && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-              >
-                {saveStatus === 'saving' && (
-                  <Badge variant="outline" className="text-blue-600 border-blue-300">
-                    <div className="w-3 h-3 border border-blue-600 border-t-transparent rounded-full animate-spin mr-1"></div>
-                    Saving...
-                  </Badge>
-                )}
-                {saveStatus === 'saved' && (
-                  <Badge variant="outline" className="text-green-600 border-green-300">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Saved
-                  </Badge>
-                )}
-                {saveStatus === 'error' && (
-                  <Badge variant="outline" className="text-red-600 border-red-300">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Error
-                  </Badge>
-                )}
-              </motion.div>
-            )}
-          </div>
+          {isEditMode && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <Badge variant="outline" className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
+                Edit Mode
+              </Badge>
+            </motion.div>
+          )}
         </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Import/Export Controls */}
-          <div className="flex items-center gap-1">
+
+        {isEditMode && (
+          <div className="flex items-center space-x-2">
             <Button
-              onClick={exportLayouts}
+              onClick={handleSaveLayout}
+              size="sm"
+              disabled={!hasUnsavedChanges || saveStatus === 'saving'}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {saveStatus === 'saving' ? 'Saving...' : 'Save Layout'}
+            </Button>
+            
+            <Button
+              onClick={handleResetLayout}
               variant="outline"
               size="sm"
-              className="text-xs"
             >
-              <Download className="h-3 w-3 mr-1" />
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+            
+            <Button
+              onClick={handleExportLayout}
+              variant="outline"
+              size="sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
             
@@ -1316,150 +1252,107 @@ const DashboardGrid = ({
                 accept=".json"
                 onChange={handleImportLayout}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                id="layout-import"
               />
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs"
-                asChild
-              >
-                <label htmlFor="layout-import" className="cursor-pointer flex items-center">
-                  <Upload className="h-3 w-3 mr-1" />
-                  Import
-                </label>
+              <Button variant="outline" size="sm">
+                <Upload className="h-4 w-4 mr-2" />
+                Import
               </Button>
             </div>
           </div>
+        )}
+      </div>
 
-          {/* Main Controls */}
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setIsEditMode(!isEditMode)}
-              variant={isEditMode ? "default" : "outline"}
-              size="sm"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              {isEditMode ? 'Exit Edit' : 'Customize'}
-            </Button>
-            
-            {isEditMode && (
-              <AnimatePresence>
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="flex items-center gap-2"
-                >
-                  <Button
-                    onClick={handleResetLayout}
-                    variant="outline"
-                    size="sm"
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    Reset
-                  </Button>
-                  
-                  <Button
-                    onClick={handleSaveLayout}
-                    variant="default"
-                    size="sm"
-                    disabled={saveStatus === 'saving'}
-                  >
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Layout
-                  </Button>
-                </motion.div>
-              </AnimatePresence>
-            )}
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Unsaved Changes Warning */}
-      {isEditMode && hasUnsavedChanges(layouts) && (
+      {/* Status Messages */}
+      {saveStatus === 'saved' && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3"
+          exit={{ opacity: 0, y: -10 }}
+          className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
         >
-          <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">You have unsaved changes</span>
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <span className="text-sm text-green-700 dark:text-green-300">
+              Layout saved successfully
+              {lastSaved && (
+                <span className="ml-2 text-green-600 dark:text-green-400">
+                  (Last saved: {lastSaved.toLocaleTimeString()})
+                </span>
+              )}
+            </span>
           </div>
         </motion.div>
       )}
 
-      {/* Grid Layout */}
+      {saveStatus === 'error' && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+        >
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <span className="text-sm text-red-700 dark:text-red-300">
+              Failed to save layout. Please try again.
+            </span>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Dashboard Grid */}
       <ResponsiveGridLayout
         className="layout"
         layouts={layouts}
         onLayoutChange={handleLayoutChange}
-        breakpoints={breakpoints}
-        cols={cols}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 12, md: 8, sm: 6, xs: 4, xxs: 2 }}
         rowHeight={60}
-        isDraggable={isEditMode}
-        isResizable={isEditMode}
         margin={[16, 16]}
         containerPadding={[0, 0]}
+        isDraggable={isEditMode}
+        isResizable={isEditMode}
         useCSSTransforms={true}
-        preventCollision={false}
-        compactType="vertical"
       >
         {/* Stats Widgets */}
-        <div key="total-logs">
-          <StatsWidget
-            title="Total Logs"
-            value={logs.length}
-            icon={() => <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-600 text-sm font-bold">L</div>}
-            color="from-blue-500 to-blue-600"
-            hoverText={`+${Math.floor(Math.random() * 10)} in last hour`}
-            isHovered={hoveredCard === 'logs'}
-            onHover={() => setHoveredCard('logs')}
-            onHoverEnd={() => setHoveredCard(null)}
-            className="h-full"
-          />
-        </div>
-
-        <div key="active-alerts">
-          <StatsWidget
-            title="Active Alerts"
-            value={alerts.length}
-            icon={() => <div className="w-8 h-8 rounded-full bg-red-200 flex items-center justify-center text-red-600 text-sm font-bold">!</div>}
-            color="from-red-500 to-red-600"
-            hoverText={alerts.length > 0 ? 'Requires attention' : 'All clear'}
-            isHovered={hoveredCard === 'alerts'}
-            onHover={() => setHoveredCard('alerts')}
-            onHoverEnd={() => setHoveredCard(null)}
-            className="h-full"
-          />
-        </div>
-
-        <div key="active-agents">
-          <StatsWidget
-            title="Active Agents"
-            value={Object.keys(agentStats).length}
-            icon={() => <div className="w-8 h-8 rounded-full bg-green-200 flex items-center justify-center text-green-600 text-sm font-bold">A</div>}
-            color="from-green-500 to-green-600"
-            hoverText={`Across ${user?.org}`}
-            isHovered={hoveredCard === 'agents'}
-            onHover={() => setHoveredCard('agents')}
-            onHoverEnd={() => setHoveredCard(null)}
-            className="h-full"
-          />
-        </div>
-
         <div key="system-status">
           <StatsWidget
             title="System Status"
-            value={getSystemStatus()}
-            icon={() => <div className="w-8 h-8 rounded-full bg-purple-200 flex items-center justify-center text-purple-600 text-sm font-bold">S</div>}
-            color="from-purple-500 to-purple-600"
-            hoverText="WebSocket: Connected"
-            isHovered={hoveredCard === 'status'}
-            onHover={() => setHoveredCard('status')}
-            onHoverEnd={() => setHoveredCard(null)}
-            className="h-full"
+            value={stats.systemStatus || 'NaN'}
+            icon={Shield}
+            color="purple"
+            loading={loading}
+          />
+        </div>
+        
+        <div key="total-logs">
+          <StatsWidget
+            title="Total Logs"
+            value={logs?.length || 0}
+            icon={Activity}
+            color="blue"
+            trend={5}
+            loading={loading}
+          />
+        </div>
+        
+        <div key="active-alerts">
+          <StatsWidget
+            title="Active Alerts"
+            value={alerts?.length || 0}
+            icon={AlertTriangle}
+            color="red"
+            loading={loading}
+          />
+        </div>
+        
+        <div key="active-agents">
+          <StatsWidget
+            title="Active Agents"
+            value={stats.activeAgents || 2}
+            icon={Users}
+            color="green"
+            loading={loading}
           />
         </div>
 
@@ -1467,64 +1360,44 @@ const DashboardGrid = ({
         <div key="recent-logs">
           <LogsWidget
             logs={logs}
-            title="Recent Logs"
-            description="Real-time log stream from your AI agents"
-            lastUpdated={lastUpdated}
-            onExport={downloadData}
-            showDetails={showDetails}
-            maxHeight={300}
-            className="h-full"
+            loading={loading}
+            maxHeight={220}
+            onExport={(format) => {
+              console.log(`Exporting logs as ${format}`);
+              // Implement export logic here
+            }}
           />
         </div>
-
+        
         <div key="security-alerts">
           <AlertsWidget
             alerts={alerts}
-            title="Security Alerts"
-            description="High-risk events requiring attention"
-            minRisk={minRisk}
-            onExport={downloadData}
-            showDetails={showDetails}
-            maxHeight={300}
-            className="h-full"
+            loading={loading}
+            maxHeight={220}
+            onExport={() => {
+              console.log('Exporting alerts');
+              // Implement export logic here
+            }}
           />
         </div>
-
+        
         <div key="agent-activity">
-          <ChartWidget
-            title="Agent Activity"
-            description="Message volume by agent"
-            icon={() => <div className="w-5 h-5 rounded bg-blue-500 flex items-center justify-center text-white text-xs font-bold">📊</div>}
-            chartType="bar"
-            data={agentChartData}
-            dataKey="messages"
-            nameKey="name"
-            height={250}
-            className="h-full"
+          <AgentsWidget
+            agents={logs}
+            loading={loading}
+            maxHeight={220}
           />
         </div>
-
+        
         <div key="risk-distribution">
           <ChartWidget
             title="Risk Distribution"
-            description="Alert severity breakdown"
-            icon={() => <div className="w-5 h-5 rounded bg-red-500 flex items-center justify-center text-white text-xs font-bold">📈</div>}
-            chartType="pie"
-            data={riskChartData}
-            dataKey="value"
-            nameKey="name"
-            height={250}
-            className="h-full"
-          />
-        </div>
-
-        <div key="agent-status">
-          <AgentsWidget
-            agentStats={agentStats}
-            title="Agent Status"
-            description="Overview of all active agents in your organization"
-            maxHeight={300}
-            className="h-full"
+            subtitle="Alert severity breakdown"
+            data={riskDistributionData}
+            type="pie"
+            color="#ef4444"
+            loading={loading}
+            height={180}
           />
         </div>
       </ResponsiveGridLayout>
@@ -1532,42 +1405,29 @@ const DashboardGrid = ({
   );
 };
 
-const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444']
-
-function Dashboard() {
-  const { user, logout, authenticatedFetch, API_BASE } = useAuth()
+// Main Dashboard Component
+const Dashboard = () => {
+  const { user, authenticatedFetch, logout } = useAuth()
   const [logs, setLogs] = useState([])
   const [alerts, setAlerts] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [isConnected, setIsConnected] = useState(false)
   const [darkMode, setDarkMode] = useState(() => {
-    // Initialize from localStorage or system preference
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('sentinelmesh-dark-mode')
-      if (saved !== null) return JSON.parse(saved)
-      return window.matchMedia('(prefers-color-scheme: dark)').matches
+      return localStorage.getItem('sentinelmesh-dark-mode') === 'true' ||
+             (!localStorage.getItem('sentinelmesh-dark-mode') && window.matchMedia('(prefers-color-scheme: dark)').matches)
     }
     return false
   })
-  const [minRisk, setMinRisk] = useState([80])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [lastUpdated, setLastUpdated] = useState(null)
-  const [activeTab, setActiveTab] = useState('dashboard')
-  const [isConnected, setIsConnected] = useState(true)
-  const [autoRefresh, setAutoRefresh] = useState(true)
   const [notifications, setNotifications] = useState(true)
-  const [fullscreen, setFullscreen] = useState(false)
-  const [showDetails, setShowDetails] = useState(true)
-  const [hoveredCard, setHoveredCard] = useState(null)
-  const [timeRange, setTimeRange] = useState('24h')
-  const [wsStatus, setWsStatus] = useState('Connecting...') 
+  const [autoRefresh, setAutoRefresh] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
-  
-  const controls = useAnimation()
 
-  // Detect mobile screen size
+  // Check if mobile on mount and resize
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024) // lg breakpoint
+      setIsMobile(window.innerWidth < 1024)
     }
     
     checkMobile()
@@ -1575,214 +1435,153 @@ function Dashboard() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Save dark mode preference
-  useEffect(() => {
-    localStorage.setItem('sentinelmesh-dark-mode', JSON.stringify(darkMode))
-  }, [darkMode])
-
-  const fetchData = async (url) => {
-    try {
-      const response = await authenticatedFetch(url)
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      return await response.json()
-    } catch (error) {
-      console.error(`Failed to fetch from ${url}:`, error)
-      return null
-    }
-  }
-
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    try {
-      // Fetch BOTH logs and alerts via HTTP on initial load
-      const [logsData, alertsData] = await Promise.all([
-        fetchData(`${API_BASE}/logs`),
-        fetchData(`${API_BASE}/alerts?min_risk=${minRisk[0]}`)
-      ])
-      
-      if (logsData) {
-        setLogs(logsData.logs || []) // Load historical logs
-        setIsConnected(true)
-      }
-      if (alertsData) {
-        setAlerts(alertsData.alerts || [])
-      }
-      setLastUpdated(new Date())
-      
-      // Trigger success animation
-      controls.start({
-        scale: [1, 1.05, 1],
-        transition: { duration: 0.3 }
-      })
-    } catch (error) {
-      console.error('Failed to load data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [minRisk, controls, authenticatedFetch, API_BASE])
-
-  useEffect(() => {
-    // WebSocket connection setup
-    const websocketUrl = API_BASE.replace('http', 'ws') + '/ws/logs';
-    const ws = new WebSocket(websocketUrl);
-
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      setWsStatus('Connected');
-      setIsConnected(true); // Update overall connection status
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const newLog = JSON.parse(event.data);
-        console.log('New log received:', newLog);
-        setLogs((prevLogs) => {
-          // Check if this log already exists to avoid duplicates
-          const exists = prevLogs.some(log => log.id === newLog.id);
-          if (exists) return prevLogs;
-          return [newLog, ...prevLogs]; // Add new log to the top
-        });
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error);
-      }
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      setWsStatus('Disconnected');
-      setIsConnected(false); // Update overall connection status
-      // Optional: Implement reconnect logic here
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setWsStatus('Error');
-      setIsConnected(false); // Update overall connection status
-    };
-
-    // Clean up WebSocket connection on component unmount
-    return () => {
-      ws.close();
-    };
-  }, [API_BASE]); // Empty dependency array means this runs once on mount
-
-  useEffect(() => {
-    loadData()
-    let interval
-    if (autoRefresh) {
-      interval = setInterval(loadData, 30000) // Auto-refresh every 30 seconds
-    }
-    return () => {
-      if (interval) clearInterval(interval)
-    }
-  }, [loadData, autoRefresh])
-
+  // Dark mode effect
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark')
     } else {
       document.documentElement.classList.remove('dark')
     }
+    localStorage.setItem('sentinelmesh-dark-mode', darkMode.toString())
   }, [darkMode])
 
-  const filteredLogs = logs.filter(log => 
-    !searchTerm || 
-    log.sender?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.receiver?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    log.context?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // WebSocket connection
+  useEffect(() => {
+    if (!user) return
 
-  const agentStats = logs.reduce((acc, log) => {
-    if (!acc[log.sender]) {
-      acc[log.sender] = { name: log.sender, count: 0, lastSeen: log.timestamp }
-    }
-    acc[log.sender].count++
-    if (new Date(log.timestamp) > new Date(acc[log.sender].lastSeen)) {
-      acc[log.sender].lastSeen = log.timestamp
-    }
-    return acc
-  }, {})
-
-  const agentChartData = Object.values(agentStats).map(agent => ({
-    name: agent.name,
-    messages: agent.count
-  }))
-
-  const riskDistribution = alerts.reduce((acc, alert) => {
-    const riskLevel = alert.risk >= 90 ? 'Critical' : 
-                     alert.risk >= 70 ? 'High' : 
-                     alert.risk >= 50 ? 'Medium' : 'Low'
-    acc[riskLevel] = (acc[riskLevel] || 0) + 1
-    return acc
-  }, {})
-
-  const riskChartData = Object.entries(riskDistribution).map(([level, count]) => ({
-    name: level,
-    value: count
-  }))
-
-  const downloadData = (data, filename, type = 'json') => {
-    const content = type === 'csv' ? 
-      [Object.keys(data[0]).join(','), ...data.map(row => Object.values(row).join(','))].join('\n') :
-      JSON.stringify(data, null, 2)
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsUrl = `${wsProtocol}//sentinelmesh-api.onrender.com/ws/logs`
     
-    const blob = new Blob([content], { type: type === 'csv' ? 'text/csv' : 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${filename}.${type}`
-    a.click()
-    URL.revokeObjectURL(url)
-    
-    // Show success notification
-    if (notifications) {
-      // In a real app, you'd use a toast library
-      console.log(`Downloaded ${filename}.${type}`)
+    let ws
+    let reconnectTimeout
+
+    const connect = () => {
+      try {
+        ws = new WebSocket(wsUrl)
+        
+        ws.onopen = () => {
+          console.log('WebSocket connected')
+          setIsConnected(true)
+        }
+        
+        ws.onmessage = (event) => {
+          try {
+            const newLog = JSON.parse(event.data)
+            setLogs(prevLogs => [newLog, ...prevLogs.slice(0, 99)]) // Keep last 100 logs
+            
+            // Add to alerts if high risk
+            if (newLog.risk >= 80) {
+              setAlerts(prevAlerts => [newLog, ...prevAlerts.slice(0, 49)]) // Keep last 50 alerts
+            }
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error)
+          }
+        }
+        
+        ws.onclose = () => {
+          console.log('WebSocket disconnected')
+          setIsConnected(false)
+          
+          // Attempt to reconnect after 3 seconds
+          reconnectTimeout = setTimeout(connect, 3000)
+        }
+        
+        ws.onerror = (error) => {
+          console.log('WebSocket error:', error)
+          setIsConnected(false)
+        }
+      } catch (error) {
+        console.error('Error creating WebSocket connection:', error)
+        setIsConnected(false)
+        reconnectTimeout = setTimeout(connect, 3000)
+      }
     }
-  }
 
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleString()
-  }
+    connect()
 
-  const getRiskBadgeColor = (risk) => {
-    if (risk >= 90) return 'bg-red-500 hover:bg-red-600'
-    if (risk >= 70) return 'bg-orange-500 hover:bg-orange-600'
-    if (risk >= 50) return 'bg-yellow-500 hover:bg-yellow-600'
-    return 'bg-green-500 hover:bg-green-600'
-  }
-
-  const toggleFullscreen = () => {
-    setFullscreen(!fullscreen)
-    if (!fullscreen) {
-      document.documentElement.requestFullscreen?.()
-    } else {
-      document.exitFullscreen?.()
+    return () => {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout)
+      if (ws) {
+        ws.close()
+      }
     }
+  }, [user])
+
+  // Fetch data function
+  const fetchData = useCallback(async () => {
+    if (!user) return
+
+    try {
+      setLoading(true)
+      
+      // Fetch all data in parallel
+      const [logsResponse, alertsResponse] = await Promise.all([
+        authenticatedFetch('https://sentinelmesh-api.onrender.com/logs'),
+        authenticatedFetch('https://sentinelmesh-api.onrender.com/alerts?min_risk=80')
+      ])
+
+      if (logsResponse.ok) {
+        const logsData = await logsResponse.json()
+        setLogs(logsData.logs || [])
+      }
+
+      if (alertsResponse.ok) {
+        const alertsData = await alertsResponse.json()
+        setAlerts(alertsData.alerts || [])
+      }
+
+      // Mock stats for now
+      setStats({
+        systemStatus: 'Operational',
+        activeAgents: 2,
+        totalLogs: logs.length,
+        activeAlerts: alerts.length
+      })
+
+    } catch (error) {
+      console.error('Error fetching data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [user, authenticatedFetch, logs.length, alerts.length])
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchData()
+  }, [user])
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefresh) return
+
+    const interval = setInterval(fetchData, 30000) // Refresh every 30 seconds
+    return () => clearInterval(interval)
+  }, [autoRefresh, fetchData])
+
+  const handleRefresh = () => {
+    fetchData()
   }
 
-  const getSystemStatus = () => {
-    if (!isConnected) return 'offline'
-    if (alerts.length > 0) return 'warning'
-    return 'online'
+  const handleLogout = () => {
+    logout()
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-all duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       {/* Mobile Header */}
       {isMobile && (
         <MobileHeader
           user={user}
           isConnected={isConnected}
-          systemStatus={getSystemStatus()}
+          systemStatus={stats.systemStatus}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
           notifications={notifications}
           setNotifications={setNotifications}
           autoRefresh={autoRefresh}
           setAutoRefresh={setAutoRefresh}
-          onRefresh={loadData}
-          onLogout={logout}
+          onRefresh={handleRefresh}
+          onLogout={handleLogout}
           loading={loading}
         />
       )}
@@ -1792,348 +1591,161 @@ function Dashboard() {
         <motion.header 
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="sticky top-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-700 shadow-lg"
+          className="sticky top-0 z-50 backdrop-blur-xl bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-700 shadow-lg"
         >
-          <ResponsiveContainer padding="sm">
+          <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
+              {/* Logo and Status */}
               <motion.div 
-                className="flex items-center space-x-3"
-                whileHover={{ scale: 1.05 }}
-                animate={controls}
+                className="flex items-center space-x-4"
+                whileHover={{ scale: 1.02 }}
               >
                 <div className="relative">
                   <Satellite className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                  <div className="absolute -top-1 -right-1">
-                    <StatusIndicator status={getSystemStatus()} size="sm" />
-                  </div>
+                  <motion.div
+                    className={`absolute -top-1 -right-1 w-3 h-3 rounded-full ${
+                      isConnected ? 'bg-green-500' : 'bg-red-500'
+                    }`}
+                    animate={{ scale: isConnected ? [1, 1.2, 1] : 1 }}
+                    transition={{ repeat: isConnected ? Infinity : 0, duration: 2 }}
+                  />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     SentinelMesh
                   </h1>
-                  <div className="flex items-center space-x-2">
-                    <p className="text-sm text-slate-600 dark:text-slate-400">Remote Dashboard</p>
-                    {isConnected ? (
-                      <Wifi className="h-3 w-3 text-green-500" />
-                    ) : (
-                      <WifiOff className="h-3 w-3 text-red-500" />
-                    )}
-                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Remote Dashboard • {user?.org}
+                  </p>
                 </div>
               </motion.div>
 
+              {/* User Info and Controls */}
               <div className="flex items-center space-x-4">
-                {/* User Info */}
-                <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-2">
-                  <User className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {user?.username}
+                {/* Connection Status */}
+                <div className="flex items-center space-x-2">
+                  {isConnected ? (
+                    <Wifi className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <WifiOff className="h-4 w-4 text-red-600 dark:text-red-400" />
+                  )}
+                  <span className="text-sm text-slate-600 dark:text-slate-300">
+                    {isConnected ? 'Connected' : 'Disconnected'}
                   </span>
-                  <Badge variant="outline" className="text-xs">
-                    {user?.org}
-                  </Badge>
                 </div>
 
-                {/* Settings Panel */}
-                <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-2">
-                  <motion.div 
-                    className="flex items-center space-x-2"
-                    whileHover={{ scale: 1.05 }}
+                {/* Controls */}
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDarkMode(!darkMode)}
                   >
-                    <Bell className={`h-4 w-4 ${notifications ? 'text-blue-500' : 'text-slate-400'}`} />
-                    <Switch 
-                      checked={notifications} 
-                      onCheckedChange={setNotifications}
-                      size="sm"
-                    />
-                  </motion.div>
+                    {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  </Button>
                   
-                  <div className="w-px h-4 bg-slate-300 dark:bg-slate-600" />
-                  
-                  <motion.div 
-                    className="flex items-center space-x-2"
-                    whileHover={{ scale: 1.05 }}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setNotifications(!notifications)}
                   >
-                    <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'text-green-500' : 'text-slate-400'}`} />
-                    <Switch 
-                      checked={autoRefresh} 
-                      onCheckedChange={setAutoRefresh}
-                      size="sm"
-                    />
-                  </motion.div>
+                    <Bell className={`h-4 w-4 ${notifications ? 'text-blue-600' : 'text-slate-400'}`} />
+                  </Button>
+                  
+                  <Button
+                    onClick={handleRefresh}
+                    variant="outline"
+                    size="sm"
+                    disabled={loading}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
                 </div>
 
-                {/* Theme Toggle */}
-                <motion.div 
-                  className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 rounded-lg p-2"
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <Sun className="h-4 w-4" />
-                  <Switch checked={darkMode} onCheckedChange={setDarkMode} />
-                  <Moon className="h-4 w-4" />
-                </motion.div>
-                
-                {/* Action Buttons */}
-                <Button
-                  onClick={loadData}
-                  disabled={loading}
-                  variant="outline"
-                  size="sm"
-                  className="relative overflow-hidden group"
-                >
-                  <motion.div
-                    animate={loading ? { rotate: 360 } : {}}
-                    transition={{ duration: 1, repeat: loading ? Infinity : 0 }}
+                {/* User Menu */}
+                <div className="flex items-center space-x-3 pl-4 border-l border-slate-200 dark:border-slate-700">
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                      {user?.username}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {user?.org}
+                    </p>
+                  </div>
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                  <Button
+                    onClick={handleLogout}
+                    variant="ghost"
+                    size="sm"
                   >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  </motion.div>
-                  Refresh
-                </Button>
-
-                {/* Logout Button */}
-                <Button
-                  onClick={logout}
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </ResponsiveContainer>
+          </div>
         </motion.header>
       )}
 
       {/* Main Content */}
-      <ResponsiveContainer maxWidth="7xl" padding="responsive">
-        {/* Mobile Tabs */}
-        {isMobile && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="dashboard" className="text-xs">Dashboard</TabsTrigger>
-                <TabsTrigger value="logs" className="text-xs">Logs</TabsTrigger>
-                <TabsTrigger value="alerts" className="text-xs">Alerts</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="dashboard" className="mt-6">
-                <DashboardGrid
-                  logs={logs}
-                  alerts={alerts}
-                  agentStats={agentStats}
-                  agentChartData={agentChartData}
-                  riskChartData={riskChartData}
-                  lastUpdated={lastUpdated}
-                  downloadData={downloadData}
-                  showDetails={showDetails}
-                  minRisk={minRisk[0]}
-                  hoveredCard={hoveredCard}
-                  setHoveredCard={setHoveredCard}
-                  user={user}
-                />
-              </TabsContent>
-              
-              <TabsContent value="logs" className="mt-6">
-                {/* Mobile-optimized logs view */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="h-5 w-5" />
-                      Recent Logs
-                    </CardTitle>
-                    <CardDescription>
-                      Real-time log stream from your AI agents
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Search */}
-                    <div className="mb-4">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <Input
-                          placeholder="Search logs..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Logs List */}
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      <AnimatePresence>
-                        {filteredLogs.length === 0 ? (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-center py-8 text-slate-500 dark:text-slate-400"
-                          >
-                            <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>No logs available</p>
-                            <p className="text-sm">Logs will appear here in real-time</p>
-                          </motion.div>
-                        ) : (
-                          filteredLogs.map((log, index) => (
-                            <motion.div
-                              key={log.id || index}
-                              initial={{ opacity: 0, y: 20 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -20 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="flex items-start justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Badge variant="outline" className="text-xs">
-                                    {log.sender}
-                                  </Badge>
-                                  {log.receiver && (
-                                    <>
-                                      <span className="text-slate-400">→</span>
-                                      <Badge variant="outline" className="text-xs">
-                                        {log.receiver}
-                                      </Badge>
-                                    </>
-                                  )}
-                                </div>
-                                <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                                  {log.payload || log.context || 'No message content'}
-                                </p>
-                                {showDetails && log.context && (
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Context: {log.context}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 ml-4">
-                                {log.risk !== undefined && (
-                                  <Badge className={`${getRiskBadgeColor(log.risk)} text-white`}>
-                                    Risk: {log.risk}%
-                                  </Badge>
-                                )}
-                              </div>
-                            </motion.div>
-                          ))
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="alerts" className="mt-6">
-                {/* Mobile-optimized alerts view */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5" />
-                      Security Alerts
-                    </CardTitle>
-                    <CardDescription>
-                      High-risk events requiring attention (Risk ≥ {minRisk[0]}%)
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Risk Threshold */}
-                    <div className="mb-4">
-                      <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 block">
-                        Minimum Risk Level: {minRisk[0]}%
-                      </label>
-                      <Slider
-                        value={minRisk}
-                        onValueChange={setMinRisk}
-                        max={100}
-                        min={0}
-                        step={10}
-                        className="w-full"
-                      />
-                    </div>
-                    
-                    {/* Alerts List */}
-                    <div className="space-y-4 overflow-y-auto" style={{ maxHeight: 400 }}>
-                      <AnimatePresence>
-                        {alerts.length === 0 ? (
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="text-center py-8 text-slate-500 dark:text-slate-400"
-                          >
-                            <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                            <p>No active alerts</p>
-                            <p className="text-sm">Your system is secure</p>
-                          </motion.div>
-                        ) : (
-                          alerts.map((alert, index) => (
-                            <motion.div
-                              key={alert.id || index}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: 20 }}
-                              transition={{ delay: index * 0.05 }}
-                              className="flex items-start justify-between p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                                  <Badge variant="outline" className="text-xs border-red-300 text-red-700">
-                                    {alert.sender}
-                                  </Badge>
-                                  <span className="text-xs text-slate-500 dark:text-slate-400">
-                                    {formatTimestamp(alert.timestamp)}
-                                  </span>
-                                </div>
-                                <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
-                                  {alert.payload || alert.context || 'High-risk activity detected'}
-                                </p>
-                                {showDetails && alert.context && (
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Context: {alert.context}
-                                  </p>
-                                )}
-                              </div>
-                              <Badge className={`${getRiskBadgeColor(alert.risk)} text-white ml-4`}>
-                                {alert.risk}%
-                              </Badge>
-                            </motion.div>
-                          ))
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </motion.div>
-        )}
-
-        {/* Desktop Dashboard */}
-        {!isMobile && (
-          <DashboardGrid
-            logs={logs}
-            alerts={alerts}
-            agentStats={agentStats}
-            agentChartData={agentChartData}
-            riskChartData={riskChartData}
-            lastUpdated={lastUpdated}
-            downloadData={downloadData}
-            showDetails={showDetails}
-            minRisk={minRisk[0]}
-            hoveredCard={hoveredCard}
-            setHoveredCard={setHoveredCard}
-            user={user}
-          />
-        )}
-      </ResponsiveContainer>
+      <main className="max-w-7xl mx-auto px-6 py-6">
+        <DashboardGrid
+          logs={logs}
+          alerts={alerts}
+          stats={stats}
+          loading={loading}
+          onRefresh={handleRefresh}
+        />
+      </main>
     </div>
   )
 }
 
+// App Content Component
+function AppContent() {
+  const { user, isLoading, login, register } = useAuth()
+  const [showRegister, setShowRegister] = useState(false)
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center"
+        >
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
+          <p className="text-slate-600 dark:text-slate-300">
+            Please wait while initializing dashboard...
+          </p>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return showRegister ? (
+      <Register
+        onRegister={register}
+        onSwitchToLogin={() => setShowRegister(false)}
+        isLoading={isLoading}
+      />
+    ) : (
+      <Login
+        onLogin={login}
+        onSwitchToRegister={() => setShowRegister(true)}
+        isLoading={isLoading}
+      />
+    )
+  }
+
+  return <Dashboard />
+}
+
+// Main App Component
 function App() {
   return (
     <AuthProvider>
@@ -2142,41 +1754,5 @@ function App() {
   )
 }
 
-function AppContent() {
-  const { user, isLoading, login, register } = useAuth(); // Destructure login and register
-  const [showRegister, setShowRegister] = useState(false); // State to toggle between login/register
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
-            Loading SentinelMesh
-          </h2>
-          <p className="text-slate-600 dark:text-slate-400">
-            Initializing your security dashboard...
-          </p>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return showRegister ? (
-      <Register onRegister={register} onSwitchToLogin={() => setShowRegister(false)} isLoading={isLoading} />
-    ) : (
-      <Login onLogin={login} onSwitchToRegister={() => setShowRegister(true)} isLoading={isLoading} />
-    );
-  }
-
-  return <Dashboard />;
-}
-
-export default App;
-
+export default App
 
