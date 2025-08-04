@@ -552,7 +552,7 @@ const Dashboard = () => {
       {/* Main Content Area */}
       <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col lg:flex-row">
-          {/* Sidebar Navigation (Desktop) - Now inside Tabs */}
+          {/* Sidebar Navigation (Desktop) */}
           <motion.aside
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
