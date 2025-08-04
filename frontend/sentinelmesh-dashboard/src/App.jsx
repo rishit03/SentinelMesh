@@ -549,186 +549,189 @@ const Dashboard = () => {
         onTabChange={setActiveTab}
       />
 
-      {/* Sidebar Navigation (Desktop) */}
-      <motion.aside
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 shadow-lg p-4"
-      >
-        <div className="flex items-center space-x-3 mb-8">
-          <div className="relative">
-            <Satellite className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-            <div className="absolute -top-1 -right-1">
-              <StatusIndicator status={stats.systemStatus} />
-            </div>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              SentinelMesh
-            </h1>
-            <div className="flex items-center space-x-1">
-              <p className="text-sm text-slate-600 dark:text-slate-400">Dashboard</p>
-              {isConnected ? (
-                <Wifi className="h-4 w-4 text-green-500" />
-              ) : (
-                <WifiOff className="h-4 w-4 text-red-500" />
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* User Info */}
-        <div className="mb-8 border-b border-slate-200 dark:border-slate-700 pb-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <User className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <p className="font-medium text-slate-900 dark:text-slate-100">
-                {user?.username}
-              </p>
-              <Badge variant="outline" className="text-sm">
-                {user?.org}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 space-y-2">
-          <TabsList className="flex flex-col h-auto p-0 bg-transparent">
-            <TabsTrigger
-              value="dashboard"
-              onClick={() => setActiveTab('dashboard')}
-              className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-            >
-              <Activity className="h-5 w-5 mr-3" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger
-              value="logs"
-              onClick={() => setActiveTab('logs')}
-              className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-            >
-              <Clock className="h-5 w-5 mr-3" />
-              Logs
-            </TabsTrigger>
-            <TabsTrigger
-              value="alerts"
-              onClick={() => setActiveTab('alerts')}
-              className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-            >
-              <AlertTriangle className="h-5 w-5 mr-3" />
-              Alerts
-            </TabsTrigger>
-            <TabsTrigger
-              value="agents"
-              onClick={() => setActiveTab('agents')}
-              className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-            >
-              <Users className="h-5 w-5 mr-3" />
-              Agents
-            </TabsTrigger>
-            <TabsTrigger
-              value="risk"
-              onClick={() => setActiveTab('risk')}
-              className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-            >
-              <Shield className="h-5 w-5 mr-3" />
-              Risk
-            </TabsTrigger>
-          </TabsList>
-        </nav>
-
-        {/* Settings and Logout */}
-        <div className="mt-auto space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700 dark:text-slate-300">Dark Mode</span>
-              <Switch checked={darkMode} onCheckedChange={setDarkMode} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700 dark:text-slate-300">Notifications</span>
-              <Switch checked={notifications} onCheckedChange={setNotifications} />
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-slate-700 dark:text-slate-300">Auto Refresh</span>
-              <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
-            </div>
-          </div>
-          <Button
-            onClick={fetchData}
-            disabled={loading}
-            variant="outline"
-            className="w-full"
-          >
-            <motion.div
-              animate={loading ? { rotate: 360 } : {}}
-              transition={{ duration: 1, repeat: loading ? Infinity : 0 }}
-              className="mr-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </motion.div>
-            Refresh Data
-          </Button>
-          <Button
-            onClick={logout}
-            variant="destructive"
-            className="w-full"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
-        </div>
-      </motion.aside>
-
-      {/* Main Content */}
+      {/* Main Content Area */}
       <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-          <TabsContent value="dashboard" className="flex-1">
-            <DashboardPage 
-              logs={logs} 
-              alerts={alerts} 
-              stats={stats} 
-              loading={loading} 
-              onNavigateToTab={setActiveTab} 
-            />
-          </TabsContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col lg:flex-row">
+          {/* Sidebar Navigation (Desktop) - Now inside Tabs */}
+          <motion.aside
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 shadow-lg p-4 mr-4"
+          >
+            <div className="flex items-center space-x-3 mb-8">
+              <div className="relative">
+                <Satellite className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                <div className="absolute -top-1 -right-1">
+                  <StatusIndicator status={stats.systemStatus} />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  SentinelMesh
+                </h1>
+                <div className="flex items-center space-x-1">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Dashboard</p>
+                  {isConnected ? (
+                    <Wifi className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <WifiOff className="h-4 w-4 text-red-500" />
+                  )}
+                </div>
+              </div>
+            </div>
 
-          <TabsContent value="logs" className="flex-1">
-            <LogsPage 
-              logs={logs} 
-              loading={loading} 
-              onExport={handleExport} 
-            />
-          </TabsContent>
+            {/* User Info */}
+            <div className="mb-8 border-b border-slate-200 dark:border-slate-700 pb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <User className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900 dark:text-slate-100">
+                    {user?.username}
+                  </p>
+                  <Badge variant="outline" className="text-sm">
+                    {user?.org}
+                  </Badge>
+                </div>
+              </div>
+            </div>
 
-          <TabsContent value="alerts" className="flex-1">
-            <AlertsPage 
-              alerts={alerts} 
-              loading={loading} 
-              onExport={handleExport} 
-            />
-          </TabsContent>
+            {/* Navigation */}
+            <nav className="flex-1 space-y-2">
+              <TabsList className="flex flex-col h-auto p-0 bg-transparent">
+                <TabsTrigger
+                  value="dashboard"
+                  onClick={() => setActiveTab('dashboard')}
+                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
+                >
+                  <Activity className="h-5 w-5 mr-3" />
+                  Dashboard
+                </TabsTrigger>
+                <TabsTrigger
+                  value="logs"
+                  onClick={() => setActiveTab('logs')}
+                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
+                >
+                  <Clock className="h-5 w-5 mr-3" />
+                  Logs
+                </TabsTrigger>
+                <TabsTrigger
+                  value="alerts"
+                  onClick={() => setActiveTab('alerts')}
+                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
+                >
+                  <AlertTriangle className="h-5 w-5 mr-3" />
+                  Alerts
+                </TabsTrigger>
+                <TabsTrigger
+                  value="agents"
+                  onClick={() => setActiveTab('agents')}
+                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
+                >
+                  <Users className="h-5 w-5 mr-3" />
+                  Agents
+                </TabsTrigger>
+                <TabsTrigger
+                  value="risk"
+                  onClick={() => setActiveTab('risk')}
+                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
+                >
+                  <Shield className="h-5 w-5 mr-3" />
+                  Risk
+                </TabsTrigger>
+              </TabsList>
+            </nav>
 
-          <TabsContent value="agents" className="flex-1">
-            <AgentsPage 
-              logs={logs} 
-              loading={loading} 
-            />
-          </TabsContent>
+            {/* Settings and Logout */}
+            <div className="mt-auto space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Dark Mode</span>
+                  <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Notifications</span>
+                  <Switch checked={notifications} onCheckedChange={setNotifications} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-slate-700 dark:text-slate-300">Auto Refresh</span>
+                  <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+                </div>
+              </div>
+              <Button
+                onClick={fetchData}
+                disabled={loading}
+                variant="outline"
+                className="w-full"
+              >
+                <motion.div
+                  animate={loading ? { rotate: 360 } : {}}
+                  transition={{ duration: 1, repeat: loading ? Infinity : 0 }}
+                  className="mr-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </motion.div>
+                Refresh Data
+              </Button>
+              <Button
+                onClick={logout}
+                variant="destructive"
+                className="w-full"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
+          </motion.aside>
 
-          <TabsContent value="risk" className="flex-1">
-            <RiskPage 
-              logs={logs} 
-              loading={loading} 
-            />
-          </TabsContent>
+          {/* Tab Content Area */}
+          <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
+            <TabsContent value="dashboard" className="flex-1">
+              <DashboardPage 
+                logs={logs} 
+                alerts={alerts} 
+                stats={stats} 
+                loading={loading} 
+                onNavigateToTab={setActiveTab} 
+              />
+            </TabsContent>
+
+            <TabsContent value="logs" className="flex-1">
+              <LogsPage 
+                logs={logs} 
+                loading={loading} 
+                onExport={handleExport} 
+              />
+            </TabsContent>
+
+            <TabsContent value="alerts" className="flex-1">
+              <AlertsPage 
+                alerts={alerts} 
+                loading={loading} 
+                onExport={handleExport} 
+              />
+            </TabsContent>
+
+            <TabsContent value="agents" className="flex-1">
+              <AgentsPage 
+                logs={logs} 
+                loading={loading} 
+              />
+            </TabsContent>
+
+            <TabsContent value="risk" className="flex-1">
+              <RiskPage 
+                logs={logs} 
+                loading={loading} 
+              />
+            </TabsContent>
+          </div>
         </Tabs>
       </main>
     </div>
-  )
-}
+  );
+};
 
 // App Content Component
 function AppContent() {
