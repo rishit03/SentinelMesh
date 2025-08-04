@@ -14,7 +14,8 @@ import {
   Users,
   Shield,
   Eye,
-  Download
+  Download,
+  CheckCircle
 } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
@@ -88,8 +89,7 @@ const predictNextValue = (data, field) => {
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX)
   const intercept = (sumY - slope * sumX) / n
   
-  const nextX = n
-  const prediction = slope * nextX + intercept
+  const prediction = slope * (recent.length) + intercept // Predict for the next point after the last one
   
   return Math.max(0, Math.round(prediction))
 }
@@ -130,7 +130,7 @@ const AdvancedAnalytics = ({ logs = [], agents = [] }) => {
     }
     
     const cutoff = new Date(now.getTime() - timeRanges[timeRange])
-    const filteredLogs = logs.filter(log => new Date(log.timestamp) >= cutoff)
+    const filteredLogs = logs.filter(log => new Date(log.timestamp || log.received_at) >= cutoff)
     
     // Group by time intervals
     const intervals = timeRange === '1h' ? 12 : timeRange === '6h' ? 24 : timeRange === '24h' ? 24 : 30
@@ -142,7 +142,7 @@ const AdvancedAnalytics = ({ logs = [], agents = [] }) => {
       const intervalEnd = new Date(cutoff.getTime() + (i + 1) * intervalMs)
       
       const intervalLogs = filteredLogs.filter(log => {
-        const logTime = new Date(log.timestamp)
+        const logTime = new Date(log.timestamp || log.received_at)
         return logTime >= intervalStart && logTime < intervalEnd
       })
       
@@ -619,3 +619,4 @@ const AdvancedAnalytics = ({ logs = [], agents = [] }) => {
 }
 
 export default AdvancedAnalytics
+

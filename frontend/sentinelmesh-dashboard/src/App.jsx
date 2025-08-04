@@ -36,8 +36,8 @@ import {
   Save,
   ChevronRight,
   ExternalLink,
-  Brain, // Added Brain icon
-  Target // Added Target icon
+  Brain, // Added for Advanced Analytics
+  Target // Added for Advanced Analytics
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -68,8 +68,8 @@ import Login from './Login.jsx'
 import Register from './Register.jsx'
 import { AuthProvider, useAuth } from './AuthContext.jsx'
 import { Responsive, WidthProvider } from 'react-grid-layout'
-import AdvancedAnalytics from './AdvancedAnalytics.jsx' // Added AdvancedAnalytics import
 import './App.css'
+import AdvancedAnalytics from './AdvancedAnalytics.jsx' // Import AdvancedAnalytics
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -87,13 +87,17 @@ const MobileHeader = ({
   onRefresh,
   onLogout,
   loading = false,
-  activeTab,
-  navigateToTab
+  onTabChange // Added for mobile menu tab navigation
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
+
+  const handleMenuItemClick = (tab) => {
+    onTabChange(tab);
+    closeMenu();
+  };
 
   return (
     <>
@@ -202,6 +206,28 @@ const MobileHeader = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Navigation Links */}
+                <nav className="flex-1 p-4 space-y-2">
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => handleMenuItemClick('dashboard')}>
+                    <Satellite className="h-4 w-4 mr-2" /> Dashboard
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => handleMenuItemClick('logs')}>
+                    <Activity className="h-4 w-4 mr-2" /> Logs
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => handleMenuItemClick('alerts')}>
+                    <AlertTriangle className="h-4 w-4 mr-2" /> Alerts
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => handleMenuItemClick('agents')}>
+                    <Users className="h-4 w-4 mr-2" /> Agents
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => handleMenuItemClick('risk')}>
+                    <Shield className="h-4 w-4 mr-2" /> Risk
+                  </Button>
+                  <Button variant="ghost" className="w-full justify-start" onClick={() => handleMenuItemClick('analytics')}>
+                    <BarChart3 className="h-4 w-4 mr-2" /> Analytics
+                  </Button>
+                </nav>
 
                 {/* Settings */}
                 <div className="flex-1 p-4 space-y-6">
@@ -465,691 +491,1344 @@ const SummaryContentWidget = ({ title, icon: Icon, color = 'blue', count, subtit
 const DetailedLogsWidget = ({ logs = [], loading = false, onExport }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [riskFilter, setRiskFilter] = useState([0]);
+  const [timeRange, setTimeRange] = useState('all');
+  const [senderFilter, setSenderFilter] = useState('all');
+  const [contextFilter, setContextFilter] = useState('all');
+  const [sortOption, setSortOption] = useState('timestamp_desc');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  const allSenders = useMemo(() => [...new Set(logs.map(log => log.sender))].sort(), [logs]);
+  const allContexts = useMemo(() => [...new Set(logs.map(log => log.context))].sort(), [logs]);
 
   const filteredLogs = useMemo(() => {
-    return logs.filter(log => {
-      const matchesSearch = !searchTerm || 
-        log.payload?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.sender?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRisk = log.risk >= riskFilter[0];
-      return matchesSearch && matchesRisk;
+    let currentLogs = logs;
+
+    // Apply time range filter
+    const now = new Date();
+    currentLogs = currentLogs.filter(log => {
+      const logTime = new Date(log.timestamp || log.received_at);
+      switch (timeRange) {
+        case 'last_hour': return logTime > new Date(now.getTime() - 60 * 60 * 1000);
+        case 'last_6_hours': return logTime > new Date(now.getTime() - 6 * 60 * 60 * 1000);
+        case 'last_24_hours': return logTime > new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        case 'last_7_days': return logTime > new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        case 'all':
+        default: return true;
+      }
     });
-  }, [logs, searchTerm, riskFilter]);
+
+    // Apply search term filter
+    if (searchTerm) {
+      currentLogs = currentLogs.filter(log =>
+        log.payload?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.sender?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.context?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.log_id?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply risk filter
+    currentLogs = currentLogs.filter(log => (log.risk || 0) >= riskFilter[0]);
+
+    // Apply sender filter
+    if (senderFilter !== 'all') {
+      currentLogs = currentLogs.filter(log => log.sender === senderFilter);
+    }
+
+    // Apply context filter
+    if (contextFilter !== 'all') {
+      currentLogs = currentLogs.filter(log => log.context === contextFilter);
+    }
+
+    // Apply sorting
+    currentLogs.sort((a, b) => {
+      const aVal = a[sortOption.split('_')[0]];
+      const bVal = b[sortOption.split('_')[0]];
+      if (sortOption.endsWith('_desc')) {
+        return bVal - aVal;
+      } else {
+        return aVal - bVal;
+      }
+    });
+
+    return currentLogs;
+  }, [logs, searchTerm, riskFilter, timeRange, senderFilter, contextFilter, sortOption]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setRiskFilter([0]);
+    setTimeRange('all');
+    setSenderFilter('all');
+    setContextFilter('all');
+    setSortOption('timestamp_desc');
+  };
+
+  const handlePreset = (presetType) => {
+    handleClearFilters(); // Clear all first
+    switch (presetType) {
+      case 'high_risk':
+        setRiskFilter([80]);
+        break;
+      case 'recent':
+        setTimeRange('last_hour');
+        break;
+      case 'critical':
+        setRiskFilter([80]);
+        setTimeRange('last_24_hours');
+        break;
+      case 'security':
+        setContextFilter('security');
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Detailed Logs ({filteredLogs.length})</span>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => onExport('json', filteredLogs)}>
-              <Download className="h-4 w-4 mr-2" />
-              Export JSON
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => onExport('csv', filteredLogs)}>
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-          </div>
-        </CardTitle>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-lg font-medium">All Logs</CardTitle>
+        <Button onClick={onExport} variant="outline" size="sm">
+          <Download className="h-4 w-4 mr-2" /> Export
+        </Button>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col md:flex-row gap-4 mb-4">
-          <Input
-            placeholder="Search logs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex-1"
-          />
-          <div className="flex items-center gap-2">
-            <Label className="whitespace-nowrap">Min Risk:</Label>
-            <Slider
-              value={riskFilter}
-              onValueChange={setRiskFilter}
-              max={100}
-              step={1}
-              className="w-24"
+      <CardContent className="flex-1 flex flex-col">
+        {/* Search and Filter Controls */}
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center space-x-2">
+            <Input
+              placeholder="Search logs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
             />
-            <span className="font-medium">{riskFilter[0]}%</span>
+            <Button variant="outline" size="sm" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>
+              <Filter className="h-4 w-4 mr-2" />
+              {showAdvancedFilters ? 'Hide' : 'Show'} Filters
+            </Button>
+          </div>
+
+          {showAdvancedFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+            >
+              {/* Risk Range */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Min Risk: {riskFilter[0]}%</label>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={riskFilter}
+                  onValueChange={setRiskFilter}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Time Range */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Time Range</label>
+                <Select value={timeRange} onValueChange={setTimeRange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select time range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="last_hour">Last Hour</SelectItem>
+                    <SelectItem value="last_6_hours">Last 6 Hours</SelectItem>
+                    <SelectItem value="last_24_hours">Last 24 Hours</SelectItem>
+                    <SelectItem value="last_7_days">Last 7 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sender Filter */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Sender</label>
+                <Select value={senderFilter} onValueChange={setSenderFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by sender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Senders</SelectItem>
+                    {allSenders.map(sender => (
+                      <SelectItem key={sender} value={sender}>{sender}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Context Filter */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Context</label>
+                <Select value={contextFilter} onValueChange={setContextFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by context" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Contexts</SelectItem>
+                    {allContexts.map(context => (
+                      <SelectItem key={context} value={context}>{context}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort Option */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Sort By</label>
+                <Select value={sortOption} onValueChange={setSortOption}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sort logs" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="timestamp_desc">Timestamp (Newest First)</SelectItem>
+                    <SelectItem value="timestamp_asc">Timestamp (Oldest First)</SelectItem>
+                    <SelectItem value="risk_desc">Risk (High to Low)</SelectItem>
+                    <SelectItem value="risk_asc">Risk (Low to High)</SelectItem>
+                    <SelectItem value="sender_asc">Sender (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="space-y-1 col-span-full lg:col-span-1">
+                <label className="text-sm font-medium">Quick Presets</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handlePreset('high_risk')}>High Risk</Button>
+                  <Button variant="outline" size="sm" onClick={() => handlePreset('recent')}>Recent</Button>
+                  <Button variant="outline" size="sm" onClick={() => handlePreset('critical')}>Critical</Button>
+                  <Button variant="outline" size="sm" onClick={() => handlePreset('security')}>Security</Button>
+                  <Button variant="secondary" size="sm" onClick={handleClearFilters}>Clear All</Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing {filteredLogs.length} of {logs.length} logs
           </div>
         </div>
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {loading ? (
-            <div className="text-center py-8">
-              <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
-              <p className="text-slate-500">Loading logs...</p>
-            </div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No logs match your current filters</p>
-            </div>
-          ) : (
-            filteredLogs.map((log, index) => (
-              <div key={log.id || index} className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={
-                      (log.risk || 0) >= 80 ? 'destructive' :
-                      (log.risk || 0) >= 40 ? 'default' : 'secondary'
-                    }>
-                      Risk: {log.risk || 0}%
-                    </Badge>
-                    <span className="text-sm text-slate-600 dark:text-slate-400">
-                      {log.sender} → {log.receiver || 'System'}
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-500">
-                    {new Date(log.timestamp || log.received_at).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-900 dark:text-white mb-2">{log.payload}</p>
-                {log.context && (
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-3 w-3 text-slate-400" />
-                    <span className="text-xs text-slate-600 dark:text-slate-400">
-                      Context: {log.context}
-                    </span>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          </div>
+        ) : filteredLogs.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            No logs found matching your criteria.
+          </div>
+        ) : (
+          <div className="overflow-auto flex-1">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sender</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Context</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payload</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredLogs.map((log, index) => (
+                  <tr key={log.log_id || index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {new Date(log.timestamp || log.received_at).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {log.sender}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      <Badge variant="outline">{log.context}</Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <Badge variant={log.risk >= 80 ? "destructive" : log.risk >= 40 ? "warning" : "success"}>
+                        {log.risk}%
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      <span className="truncate max-w-xs block">{log.payload}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 };
 
 const DetailedAlertsWidget = ({ alerts = [], loading = false, onExport }) => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>High-Risk Alerts ({alerts.length})</span>
-          <Button variant="outline" size="sm" onClick={() => onExport('json', alerts)}>
-            <Download className="h-4 w-4 mr-2" />
-            Export Alerts
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {loading ? (
-            <div className="text-center py-8">
-              <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
-              <p className="text-slate-500">Loading alerts...</p>
-            </div>
-          ) : alerts.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
-              <p>No high-risk alerts at this time</p>
-            </div>
-          ) : (
-            alerts.map((log, index) => (
-              <div key={log.id || index} className="p-4 border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                    <Badge variant="destructive">
-                      {log.risk || 0}% Risk
-                    </Badge>
-                    <span className="text-sm text-slate-600 dark:text-slate-400">
-                      {log.sender}
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-500">
-                    {new Date(log.timestamp || log.received_at).toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-900 dark:text-white">{log.payload}</p>
-              </div>
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+  const [searchTerm, setSearchTerm] = useState('');
+  const [riskFilter, setRiskFilter] = useState([0]);
+  const [timeRange, setTimeRange] = useState('all');
+  const [senderFilter, setSenderFilter] = useState('all');
+  const [contextFilter, setContextFilter] = useState('all');
+  const [sortOption, setSortOption] = useState('timestamp_desc');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-const DetailedAgentsWidget = ({ agents = [], loading = false }) => {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Agent Details</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {loading ? (
-            <div className="text-center py-8">
-              <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
-              <p className="text-slate-500">Loading agents...</p>
-            </div>
-          ) : agents.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-              <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No agents available</p>
-            </div>
-          ) : (
-            agents.map((agent, index) => (
-              <div key={agent.id || index} className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${
-                    agent.status === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                  }`}></div>
-                  <div>
-                    <p className="font-medium text-slate-900 dark:text-white">{agent.name}</p>
-                    <p className="text-xs text-slate-500">
-                      Last seen: {new Date(agent.lastSeen).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">{agent.messageCount} messages</p>
-                  <Badge variant={
-                    agent.avgRisk >= 80 ? 'destructive' :
-                    agent.avgRisk >= 40 ? 'default' : 'secondary'
-                  }>
-                    {agent.avgRisk}% avg risk
-                  </Badge>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+  const allSenders = useMemo(() => [...new Set(alerts.map(alert => alert.sender))].sort(), [alerts]);
+  const allContexts = useMemo(() => [...new Set(alerts.map(alert => alert.context))].sort(), [alerts]);
 
-const DetailedRiskWidget = ({ logs = [], loading = false }) => {
-  const riskDistribution = useMemo(() => {
-    const low = logs.filter(log => (log.risk || 0) < 40).length;
-    const medium = logs.filter(log => (log.risk || 0) >= 40 && (log.risk || 0) < 80).length;
-    const high = logs.filter(log => (log.risk || 0) >= 80).length;
-    const total = low + medium + high;
+  const filteredAlerts = useMemo(() => {
+    let currentAlerts = alerts;
 
-    return [
-      { name: 'Low (0-39%)', value: low, fill: '#10b981' },
-      { name: 'Medium (40-79%)', value: medium, fill: '#f59e0b' },
-      { name: 'High (80-100%)', value: high, fill: '#ef4444' }
-    ].map(entry => ({ ...entry, percent: total > 0 ? (entry.value / total) : 0 }));
-  }, [logs]);
-
-  const riskTimelineData = useMemo(() => {
-    // Group logs by hour for the last 24 hours
+    // Apply time range filter
     const now = new Date();
-    const data = {};
-    for (let i = 0; i < 24; i++) {
-      const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
-      const hourKey = hour.getHours();
-      data[hourKey] = { hour: `${hourKey}:00`, count: 0, totalRisk: 0 };
-    }
-
-    logs.forEach(log => {
-      const logDate = new Date(log.timestamp || log.received_at);
-      const hourKey = logDate.getHours();
-      if (data[hourKey]) {
-        data[hourKey].count++;
-        data[hourKey].totalRisk += (log.risk || 0);
+    currentAlerts = currentAlerts.filter(alert => {
+      const alertTime = new Date(alert.timestamp || alert.received_at);
+      switch (timeRange) {
+        case 'last_hour': return alertTime > new Date(now.getTime() - 60 * 60 * 1000);
+        case 'last_6_hours': return alertTime > new Date(now.getTime() - 6 * 60 * 60 * 1000);
+        case 'last_24_hours': return alertTime > new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        case 'last_7_days': return alertTime > new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        case 'all':
+        default: return true;
       }
     });
 
-    return Object.values(data).sort((a, b) => {
-      const hourA = parseInt(a.hour.split(':')[0]);
-      const hourB = parseInt(b.hour.split(':')[0]);
-      return (hourA - hourB + 24) % 24; // Sort chronologically for 24 hours
-    }).map(item => ({ ...item, avgRisk: item.count > 0 ? Math.round(item.totalRisk / item.count) : 0 }));
-  }, [logs]);
+    // Apply search term filter
+    if (searchTerm) {
+      currentAlerts = currentAlerts.filter(alert =>
+        alert.payload?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        alert.sender?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        alert.context?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        alert.alert_id?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
 
-  const topRiskEvents = useMemo(() => {
-    return logs
-      .filter(log => (log.risk || 0) > 0)
-      .sort((a, b) => (b.risk || 0) - (a.risk || 0))
-      .slice(0, 10);
-  }, [logs]);
+    // Apply risk filter
+    currentAlerts = currentAlerts.filter(alert => (alert.risk || 0) >= riskFilter[0]);
+
+    // Apply sender filter
+    if (senderFilter !== 'all') {
+      currentAlerts = currentAlerts.filter(alert => alert.sender === senderFilter);
+    }
+
+    // Apply context filter
+    if (contextFilter !== 'all') {
+      currentAlerts = currentAlerts.filter(alert => alert.context === contextFilter);
+    }
+
+    // Apply sorting
+    currentAlerts.sort((a, b) => {
+      const aVal = a[sortOption.split('_')[0]];
+      const bVal = b[sortOption.split('_')[0]];
+      if (sortOption.endsWith('_desc')) {
+        return bVal - aVal;
+      } else {
+        return aVal - bVal;
+      }
+    });
+
+    return currentAlerts;
+  }, [alerts, searchTerm, riskFilter, timeRange, senderFilter, contextFilter, sortOption]);
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setRiskFilter([0]);
+    setTimeRange('all');
+    setSenderFilter('all');
+    setContextFilter('all');
+    setSortOption('timestamp_desc');
+  };
+
+  const handlePreset = (presetType) => {
+    handleClearFilters(); // Clear all first
+    switch (presetType) {
+      case 'high_risk':
+        setRiskFilter([80]);
+        break;
+      case 'recent':
+        setTimeRange('last_hour');
+        break;
+      case 'critical':
+        setRiskFilter([80]);
+        setTimeRange('last_24_hours');
+        break;
+      case 'security':
+        setContextFilter('security');
+        break;
+      default:
+        break;
+    }
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Detailed Risk Analysis</CardTitle>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-lg font-medium">All Alerts</CardTitle>
+        <Button onClick={onExport} variant="outline" size="sm">
+          <Download className="h-4 w-4 mr-2" /> Export
+        </Button>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Risk Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                {loading ? (
-                  <div className="text-center py-8">
-                    <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
-                    <p className="text-slate-500">Loading risk data...</p>
-                  </div>
-                ) : logs.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
-                    <div className="text-center">
-                      <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No risk data available</p>
-                    </div>
-                  </div>
-                ) : (
-                  <RechartsResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={riskDistribution}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {riskDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </RechartsResponsiveContainer>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+      <CardContent className="flex-1 flex flex-col">
+        {/* Search and Filter Controls */}
+        <div className="mb-4 space-y-3">
+          <div className="flex items-center space-x-2">
+            <Input
+              placeholder="Search alerts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+            <Button variant="outline" size="sm" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>
+              <Filter className="h-4 w-4 mr-2" />
+              {showAdvancedFilters ? 'Hide' : 'Show'} Filters
+            </Button>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Risk Timeline (Last 24h)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                {loading ? (
-                  <div className="text-center py-8">
-                    <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
-                    <p className="text-slate-500">Loading risk data...</p>
-                  </div>
-                ) : logs.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-slate-500 dark:text-slate-400">
-                    <div className="text-center">
-                      <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No data available</p>
-                    </div>
-                  </div>
-                ) : (
-                  <RechartsResponsiveContainer width="100%" height="100%">
-                    <LineChart data={riskTimelineData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="hour" />
-                      <YAxis />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="avgRisk" stroke="#ef4444" strokeWidth={2} name="Avg Risk" />
-                      <Line type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={2} name="Log Count" />
-                    </LineChart>
-                  </RechartsResponsiveContainer>
-                )}
+          {showAdvancedFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
+            >
+              {/* Risk Range */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Min Risk: {riskFilter[0]}%</label>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={riskFilter}
+                  onValueChange={setRiskFilter}
+                  className="w-full"
+                />
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Time Range */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Time Range</label>
+                <Select value={timeRange} onValueChange={setTimeRange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select time range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="last_hour">Last Hour</SelectItem>
+                    <SelectItem value="last_6_hours">Last 6 Hours</SelectItem>
+                    <SelectItem value="last_24_hours">Last 24 Hours</SelectItem>
+                    <SelectItem value="last_7_days">Last 7 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sender Filter */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Sender</label>
+                <Select value={senderFilter} onValueChange={setSenderFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by sender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Senders</SelectItem>
+                    {allSenders.map(sender => (
+                      <SelectItem key={sender} value={sender}>{sender}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Context Filter */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Context</label>
+                <Select value={contextFilter} onValueChange={setContextFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by context" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Contexts</SelectItem>
+                    {allContexts.map(context => (
+                      <SelectItem key={context} value={context}>{context}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort Option */}
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Sort By</label>
+                <Select value={sortOption} onValueChange={setSortOption}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sort alerts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="timestamp_desc">Timestamp (Newest First)</SelectItem>
+                    <SelectItem value="timestamp_asc">Timestamp (Oldest First)</SelectItem>
+                    <SelectItem value="risk_desc">Risk (High to Low)</SelectItem>
+                    <SelectItem value="risk_asc">Risk (Low to High)</SelectItem>
+                    <SelectItem value="sender_asc">Sender (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Quick Presets */}
+              <div className="space-y-1 col-span-full lg:col-span-1">
+                <label className="text-sm font-medium">Quick Presets</label>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handlePreset('high_risk')}>High Risk</Button>
+                  <Button variant="outline" size="sm" onClick={() => handlePreset('recent')}>Recent</Button>
+                  <Button variant="outline" size="sm" onClick={() => handlePreset('critical')}>Critical</Button>
+                  <Button variant="outline" size="sm" onClick={() => handlePreset('security')}>Security</Button>
+                  <Button variant="secondary" size="sm" onClick={handleClearFilters}>Clear All</Button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Showing {filteredAlerts.length} of {alerts.length} alerts
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Risk Events</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 max-h-64 overflow-y-auto">
-              {loading ? (
-                <div className="text-center py-8">
-                  <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin text-slate-500" />
-                  <p className="text-slate-500">Loading top risk events...</p>
-                </div>
-              ) : topRiskEvents.length === 0 ? (
-                <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                  <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                  <p>No high-risk events detected</p>
-                </div>
-              ) : (
-                topRiskEvents.map((log, index) => (
-                  <div key={log.id || index} className="flex items-center justify-between p-3 border border-slate-200 dark:border-slate-700 rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Badge variant="destructive">
-                          {log.risk || 0}%
-                        </Badge>
-                        <span className="text-sm text-slate-600 dark:text-slate-400">
-                          {log.sender}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-900 dark:text-white truncate">
-                        {log.payload}
-                      </p>
-                    </div>
-                    <span className="text-xs text-slate-500 ml-4">
-                      {new Date(log.timestamp || log.received_at).toLocaleString()}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          </div>
+        ) : filteredAlerts.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            No alerts found matching your criteria.
+          </div>
+        ) : (
+          <div className="overflow-auto flex-1">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sender</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Context</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payload</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredAlerts.map((alert, index) => (
+                  <tr key={alert.alert_id || index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {new Date(alert.timestamp || alert.received_at).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {alert.sender}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      <Badge variant="outline">{alert.context}</Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <Badge variant={alert.risk >= 80 ? "destructive" : alert.risk >= 40 ? "warning" : "success"}>
+                        {alert.risk}%
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      <span className="truncate max-w-xs block">{alert.payload}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 };
 
-// Main App Component
+const DetailedAgentsWidget = ({ agents = [], loading = false, onExport }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOption, setSortOption] = useState('name_asc');
+
+  const filteredAgents = useMemo(() => {
+    let currentAgents = agents;
+
+    if (searchTerm) {
+      currentAgents = currentAgents.filter(agent =>
+        agent.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agent.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        agent.version?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    currentAgents.sort((a, b) => {
+      const [field, order] = sortOption.split('_');
+      const aVal = a[field];
+      const bVal = b[field];
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      } else {
+        return order === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+    });
+
+    return currentAgents;
+  }, [agents, searchTerm, sortOption]);
+
+  return (
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-lg font-medium">All Agents</CardTitle>
+        <Button onClick={onExport} variant="outline" size="sm">
+          <Download className="h-4 w-4 mr-2" /> Export
+        </Button>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col">
+        <div className="mb-4 flex items-center space-x-2">
+          <Input
+            placeholder="Search agents..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex-1"
+          />
+          <Select value={sortOption} onValueChange={setSortOption}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort agents" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name_asc">Name (A-Z)</SelectItem>
+              <SelectItem value="name_desc">Name (Z-A)</SelectItem>
+              <SelectItem value="status_asc">Status (A-Z)</SelectItem>
+              <SelectItem value="status_desc">Status (Z-A)</SelectItem>
+              <SelectItem value="last_seen_desc">Last Seen (Newest First)</SelectItem>
+              <SelectItem value="last_seen_asc">Last Seen (Oldest First)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          </div>
+        ) : filteredAgents.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            No agents found matching your criteria.
+          </div>
+        ) : (
+          <div className="overflow-auto flex-1">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Version</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Connected</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredAgents.map((agent, index) => (
+                  <tr key={agent.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
+                      {agent.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      <Badge variant={agent.status === 'active' ? 'success' : 'secondary'}>
+                        {agent.status}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {agent.version}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {new Date(agent.last_seen).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {agent.connected ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+const DetailedRiskWidget = ({ logs = [], loading = false, onExport }) => {
+  const [timeRange, setTimeRange] = useState('all');
+  const [sortOption, setSortOption] = useState('risk_desc');
+
+  const riskData = useMemo(() => {
+    const now = new Date();
+    let filteredLogs = logs;
+
+    // Apply time range filter
+    filteredLogs = filteredLogs.filter(log => {
+      const logTime = new Date(log.timestamp || log.received_at);
+      switch (timeRange) {
+        case 'last_hour': return logTime > new Date(now.getTime() - 60 * 60 * 1000);
+        case 'last_6_hours': return logTime > new Date(now.getTime() - 6 * 60 * 60 * 1000);
+        case 'last_24_hours': return logTime > new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        case 'last_7_days': return logTime > new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        case 'all':
+        default: return true;
+      }
+    });
+
+    // Aggregate risk by context
+    const contextRisk = {};
+    filteredLogs.forEach(log => {
+      if (!contextRisk[log.context]) {
+        contextRisk[log.context] = { totalRisk: 0, count: 0 };
+      }
+      contextRisk[log.context].totalRisk += log.risk || 0;
+      contextRisk[log.context].count++;
+    });
+
+    const data = Object.entries(contextRisk).map(([context, stats]) => ({
+      name: context,
+      risk: Math.round(stats.totalRisk / stats.count),
+      count: stats.count,
+    }));
+
+    // Sort data
+    data.sort((a, b) => {
+      const [field, order] = sortOption.split('_');
+      const aVal = a[field];
+      const bVal = b[field];
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return order === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      } else {
+        return order === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+    });
+
+    return data;
+  }, [logs, timeRange, sortOption]);
+
+  return (
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-lg font-medium">Risk Overview</CardTitle>
+        <Button onClick={onExport} variant="outline" size="sm">
+          <Download className="h-4 w-4 mr-2" /> Export
+        </Button>
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col">
+        <div className="mb-4 flex items-center space-x-2">
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select time range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Time</SelectItem>
+              <SelectItem value="last_hour">Last Hour</SelectItem>
+              <SelectItem value="last_6_hours">Last 6 Hours</SelectItem>
+              <SelectItem value="last_24_hours">Last 24 Hours</SelectItem>
+              <SelectItem value="last_7_days">Last 7 Days</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortOption} onValueChange={setSortOption}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="risk_desc">Risk (High to Low)</SelectItem>
+              <SelectItem value="risk_asc">Risk (Low to High)</SelectItem>
+              <SelectItem value="name_asc">Context (A-Z)</SelectItem>
+              <SelectItem value="name_desc">Context (Z-A)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          </div>
+        ) : riskData.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            No risk data available for the selected time range.
+          </div>
+        ) : (
+          <div className="overflow-auto flex-1">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Context</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Average Risk</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Log Count</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                {riskData.map((item, index) => (
+                  <tr key={item.name || index} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-200">
+                      {item.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <Badge variant={item.risk >= 80 ? "destructive" : item.risk >= 40 ? "warning" : "success"}>
+                        {item.risk}%
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-200">
+                      {item.count}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const App = () => {
-  const { user, logout } = useAuth();
+  const { user, token, login, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [logs, setLogs] = useState([]);
   const [agents, setAgents] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [isConnected, setIsConnected] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedMode = localStorage.getItem('darkMode');
+    return savedMode ? JSON.parse(savedMode) : window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [notifications, setNotifications] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [systemStatus, setSystemStatus] = useState('offline'); // 'online', 'offline', 'degraded'
+  const [isConnected, setIsConnected] = useState(false);
 
-  // Mobile state
-  const [isMobile, setIsMobile] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
-
-  // Check if mobile
+  // Apply dark mode class to body
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
 
-  // Fetch data
-  const fetchData = useCallback(async () => {
-    if (!user?.token) return;
-    
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://sentinelmesh-api.onrender.com';
+
+  const fetchLogs = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://sentinelmesh-api.onrender.com'}/logs`, {
+      const response = await fetch(`${API_BASE_URL}/logs`, {
         headers: {
-          'Authorization': `Bearer ${user.token}`,
-          'Content-Type': 'application/json'
-        }
+          'Authorization': `Bearer ${token}`,
+        },
       });
-      
       if (!response.ok) {
+        if (response.status === 401) {
+          logout(); // Token expired or invalid
+          return;
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       const data = await response.json();
-      setLogs(data.logs || []);
-      
-      // Extract unique agents from logs
-      const uniqueAgents = [...new Set((data.logs || []).map(log => log.sender))].map(sender => ({
-        id: sender,
-        name: sender,
-        status: 'active',
-        lastSeen: new Date().toISOString(),
-        messageCount: (data.logs || []).filter(log => log.sender === sender).length,
-        avgRisk: Math.round((data.logs || []).filter(log => log.sender === sender).reduce((sum, log) => sum + (log.risk || 0), 0) / (data.logs || []).filter(log => log.sender === sender).length) || 0
-      }));
-      
-      setAgents(uniqueAgents);
+      setLogs(data);
       setIsConnected(true);
-    } catch (err) {
-      console.error('Error fetching data:', err);
-      setError(err.message);
+      setSystemStatus('online');
+    } catch (e) {
+      console.error("Failed to fetch logs:", e);
+      setError(e.message);
       setIsConnected(false);
+      setSystemStatus('degraded');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  }, [user?.token]);
+  }, [token, logout, API_BASE_URL]);
+
+  const fetchAgents = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_BASE_URL}/agents`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setAgents(data);
+      setIsConnected(true);
+      setSystemStatus('online');
+    } catch (e) {
+      console.error("Failed to fetch agents:", e);
+      setError(e.message);
+      setIsConnected(false);
+      setSystemStatus('degraded');
+    } finally {
+      setLoading(false);
+    }
+  }, [token, logout, API_BASE_URL]);
+
+  const handleRefresh = useCallback(() => {
+    fetchLogs();
+    fetchAgents();
+  }, [fetchLogs, fetchAgents]);
 
   useEffect(() => {
-    fetchData();
+    handleRefresh();
     if (autoRefresh) {
-      const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+      const interval = setInterval(handleRefresh, 30000); // Refresh every 30 seconds
       return () => clearInterval(interval);
     }
-  }, [fetchData, autoRefresh]);
+  }, [handleRefresh, autoRefresh]);
 
-  // Handle tab navigation from dashboard widgets
-  const navigateToTab = useCallback((tab) => {
-    setActiveTab(tab);
-    setShowMobileMenu(false);
-  }, []);
+  // Calculate summary statistics for dashboard
+  const totalLogs = logs.length;
+  const totalAgents = agents.length;
+  const activeAgents = agents.filter(agent => agent.status === 'active').length;
+  const highRiskLogs = logs.filter(log => log.risk >= 80).length;
+  const averageRisk = totalLogs > 0 ? (logs.reduce((sum, log) => sum + log.risk, 0) / totalLogs).toFixed(1) : 0;
 
-  // Export data utility
-  const exportData = useCallback((format, data, filename = 'export') => {
-    if (format === 'json') {
-      const jsonString = JSON.stringify(data, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } else if (format === 'csv') {
-      if (data.length === 0) return;
-      const headers = Object.keys(data[0]);
-      const csvContent = [headers.join(','), ...data.map(row => headers.map(fieldName => JSON.stringify(row[fieldName])).join(','))].join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${filename}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-  }, []);
+  const alerts = useMemo(() => logs.filter(log => log.risk >= 70), [logs]);
 
-  if (!user) {
+  // Grid layout for dashboard
+  const dashboardLayouts = {
+    lg: [
+      { i: 'totalLogs', x: 0, y: 0, w: 2, h: 1, minW: 2, minH: 1 },
+      { i: 'totalAgents', x: 2, y: 0, w: 2, h: 1, minW: 2, minH: 1 },
+      { i: 'activeAgents', x: 4, y: 0, w: 2, h: 1, minW: 2, minH: 1 },
+      { i: 'highRiskLogs', x: 0, y: 1, w: 3, h: 1, minW: 3, minH: 1 },
+      { i: 'averageRisk', x: 3, y: 1, w: 3, h: 1, minW: 3, minH: 1 },
+      { i: 'logChart', x: 0, y: 2, w: 6, h: 2, minW: 3, minH: 2 },
+      { i: 'agentStatusChart', x: 0, y: 4, w: 6, h: 2, minW: 3, minH: 2 },
+    ],
+    md: [
+      { i: 'totalLogs', x: 0, y: 0, w: 3, h: 1 },
+      { i: 'totalAgents', x: 3, y: 0, w: 3, h: 1 },
+      { i: 'activeAgents', x: 0, y: 1, w: 3, h: 1 },
+      { i: 'highRiskLogs', x: 3, y: 1, w: 3, h: 1 },
+      { i: 'averageRisk', x: 0, y: 2, w: 6, h: 1 },
+      { i: 'logChart', x: 0, y: 3, w: 6, h: 2 },
+      { i: 'agentStatusChart', x: 0, y: 5, w: 6, h: 2 },
+    ],
+    sm: [
+      { i: 'totalLogs', x: 0, y: 0, w: 4, h: 1 },
+      { i: 'totalAgents', x: 0, y: 1, w: 4, h: 1 },
+      { i: 'activeAgents', x: 0, y: 2, w: 4, h: 1 },
+      { i: 'highRiskLogs', x: 0, y: 3, w: 4, h: 1 },
+      { i: 'averageRisk', x: 0, y: 4, w: 4, h: 1 },
+      { i: 'logChart', x: 0, y: 5, w: 4, h: 2 },
+      { i: 'agentStatusChart', x: 0, y: 7, w: 4, h: 2 },
+    ],
+  };
+
+  // Data for charts
+  const logChartData = useMemo(() => {
+    const data = {};
+    logs.forEach(log => {
+      const date = new Date(log.timestamp || log.received_at).toLocaleDateString();
+      if (!data[date]) {
+        data[date] = { date, count: 0, risk: 0 };
+      }
+      data[date].count++;
+      data[date].risk += log.risk || 0;
+    });
+    return Object.values(data).map(item => ({
+      ...item,
+      risk: Math.round(item.risk / item.count) // Average risk per day
+    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [logs]);
+
+  const agentStatusData = useMemo(() => {
+    const active = agents.filter(agent => agent.status === 'active').length;
+    const inactive = agents.filter(agent => agent.status === 'inactive').length;
+    const disconnected = agents.filter(agent => agent.status === 'disconnected').length;
+    return [
+      { name: 'Active', value: active, color: '#10b981' },
+      { name: 'Inactive', value: inactive, color: '#f59e0b' },
+      { name: 'Disconnected', value: disconnected, color: '#ef4444' },
+    ];
+  }, [agents]);
+
+  const handleExport = (data, filename) => {
+    const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(
+      JSON.stringify(data, null, 2)
+    )}`;
+    const link = document.createElement('a');
+    link.href = jsonString;
+    link.download = filename;
+    link.click();
+  };
+
+  if (!token) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-        <Login />
-      </div>
+      <AuthProvider>
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+          <Tabs defaultValue="login" className="w-[400px]">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Register</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
+              <Login />
+            </TabsContent>
+            <TabsContent value="register">
+              <Register />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </AuthProvider>
     );
   }
 
-  const systemStatus = isConnected ? 'connected' : 'disconnected';
-
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'
-    }`}>
-      <ResponsiveContainer>
-        {/* Header */}
-        <MobileHeader
-          user={user}
-          isConnected={isConnected}
-          systemStatus={systemStatus}
-          darkMode={isDarkMode}
-          setDarkMode={setIsDarkMode}
-          notifications={notifications}
-          setNotifications={setNotifications}
-          autoRefresh={autoRefresh}
-          setAutoRefresh={setAutoRefresh}
-          onRefresh={fetchData}
-          onLogout={logout}
-          loading={isLoading}
-          activeTab={activeTab}
-          navigateToTab={navigateToTab}
-        />
+    <div className={`min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-50 transition-colors duration-300 ${darkMode ? 'dark' : ''}`}>
+      <MobileHeader
+        user={user}
+        isConnected={isConnected}
+        systemStatus={systemStatus}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+        notifications={notifications}
+        setNotifications={setNotifications}
+        autoRefresh={autoRefresh}
+        setAutoRefresh={setAutoRefresh}
+        onRefresh={handleRefresh}
+        onLogout={logout}
+        loading={loading}
+        onTabChange={setActiveTab} // Pass setActiveTab to MobileHeader
+      />
+
+      <div className="flex">
+        {/* Sidebar for larger screens */}
+        <aside className="hidden lg:flex flex-col w-64 min-h-screen border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center space-x-3">
+              <div className="relative">
+                <Satellite className="h-7 w-7 text-blue-600 dark:text-blue-400" />
+                <div className="absolute -top-1 -right-1">
+                  <StatusIndicator status={systemStatus} />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  SentinelMesh
+                </h1>
+                <div className="flex items-center space-x-1">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Dashboard</p>
+                  {isConnected ? (
+                    <Wifi className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <WifiOff className="h-4 w-4 text-red-500" />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <User className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="font-medium text-slate-900 dark:text-slate-100">
+                  {user?.username}
+                </p>
+                <Badge variant="outline" className="text-xs">
+                  {user?.org}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <nav className="flex-1 p-4 space-y-2">
+            <Button
+              variant={activeTab === 'dashboard' ? 'secondary' : 'ghost'}
+              onClick={() => setActiveTab('dashboard')}
+              className="w-full justify-start"
+            >
+              <Satellite className="h-4 w-4 mr-2" /> Dashboard
+            </Button>
+            <Button
+              variant={activeTab === 'logs' ? 'secondary' : 'ghost'}
+              onClick={() => setActiveTab('logs')}
+              className="w-full justify-start"
+            >
+              <Activity className="h-4 w-4 mr-2" /> Logs
+            </Button>
+            <Button
+              variant={activeTab === 'alerts' ? 'secondary' : 'ghost'}
+              onClick={() => setActiveTab('alerts')}
+              className="w-full justify-start"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" /> Alerts
+            </Button>
+            <Button
+              variant={activeTab === 'agents' ? 'secondary' : 'ghost'}
+              onClick={() => setActiveTab('agents')}
+              className="w-full justify-start"
+            >
+              <Users className="h-4 w-4 mr-2" /> Agents
+            </Button>
+            <Button
+              variant={activeTab === 'risk' ? 'secondary' : 'ghost'}
+              onClick={() => setActiveTab('risk')}
+              className="w-full justify-start"
+            >
+              <Shield className="h-4 w-4 mr-2" /> Risk
+            </Button>
+            <Button
+              variant={activeTab === 'analytics' ? 'secondary' : 'ghost'}
+              onClick={() => setActiveTab('analytics')}
+              className="w-full justify-start"
+            >
+              <BarChart3 className="h-4 w-4 mr-2" /> Analytics
+            </Button>
+          </nav>
+
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700 dark:text-slate-300">Dark Mode</span>
+              <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700 dark:text-slate-300">Notifications</span>
+              <Switch checked={notifications} onCheckedChange={setNotifications} />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-700 dark:text-slate-300">Auto Refresh</span>
+              <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
+            </div>
+            <Button
+              onClick={handleRefresh}
+              disabled={loading}
+              variant="outline"
+              className="w-full"
+            >
+              <motion.div
+                animate={loading ? { rotate: 360 } : {}}
+                transition={{ duration: 1, repeat: loading ? Infinity : 0 }}
+                className="mr-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+              </motion.div>
+              Refresh Data
+            </Button>
+            <Button
+              onClick={logout}
+              variant="outline"
+              className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
+          </div>
+        </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            {/* Desktop Tab Navigation */}
-            {!isMobile && (
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="dashboard" className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  Dashboard
-                </TabsTrigger>
-                <TabsTrigger value="logs" className="flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  Logs
-                </TabsTrigger>
-                <TabsTrigger value="alerts" className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4" />
-                  Alerts
-                </TabsTrigger>
-                <TabsTrigger value="agents" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Agents
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="flex items-center gap-2">
-                  <Brain className="h-4 w-4" />
-                  Analytics
-                </TabsTrigger>
-                <TabsTrigger value="risk" className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  Risk
-                </TabsTrigger>
-              </TabsList>
-            )}
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+              role="alert"
+            >
+              <strong className="font-bold">Error:</strong>
+              <span className="block sm:inline"> {error}</span>
+            </motion.div>
+          )}
 
-            {/* Dashboard Tab */}
-            <TabsContent value="dashboard" className="space-y-6">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard Overview</h2>
-                  <p className="text-gray-600 dark:text-gray-400">Real-time monitoring and system status</p>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
+            <TabsList className="hidden lg:flex mb-4 grid-cols-6">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="logs">Logs</TabsTrigger>
+              <TabsTrigger value="alerts">Alerts</TabsTrigger>
+              <TabsTrigger value="agents">Agents</TabsTrigger>
+              <TabsTrigger value="risk">Risk</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="dashboard" className="flex-1 flex flex-col">
+              <ResponsiveGridLayout
+                className="layout"
+                layouts={dashboardLayouts}
+                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                cols={{ lg: 6, md: 6, sm: 4, xs: 4, xxs: 2 }}
+                rowHeight={150}
+                isDraggable={false}
+                isResizable={false}
+              >
+                <div key="totalLogs">
+                  <SummaryStatsWidget
+                    title="Total Logs"
+                    value={totalLogs}
+                    icon={Activity}
+                    color="blue"
+                    subtitle="All messages received"
+                    loading={loading}
+                    onClick={() => setActiveTab('logs')}
+                  />
                 </div>
-                <Button onClick={fetchData} disabled={isLoading}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
-              </div>
-
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <SummaryStatsWidget
-                  title="Total Logs"
-                  value={logs.length}
-                  icon={Activity}
-                  color="blue"
-                  subtitle="Click to view details"
-                  loading={isLoading}
-                  onClick={() => navigateToTab('logs')}
-                />
-
-                <SummaryStatsWidget
-                  title="Active Alerts"
-                  value={logs.filter(log => (log.risk || 0) >= 80).length}
-                  icon={AlertTriangle}
-                  color="red"
-                  subtitle="High risk events"
-                  loading={isLoading}
-                  onClick={() => navigateToTab('alerts')}
-                />
-
-                <SummaryStatsWidget
-                  title="Active Agents"
-                  value={agents.length}
-                  icon={Users}
-                  color="green"
-                  subtitle="Currently monitoring"
-                  loading={isLoading}
-                  onClick={() => navigateToTab('agents')}
-                />
-
-                <SummaryStatsWidget
-                  title="System Status"
-                  value={logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length) : 0}
-                  icon={Shield}
-                  color="purple"
-                  subtitle="Average risk level"
-                  loading={isLoading}
-                  onClick={() => navigateToTab('risk')}
-                />
-              </div>
-
-              {/* Quick Overview Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <SummaryContentWidget
-                  title="Recent Logs"
-                  icon={Activity}
-                  color="blue"
-                  count={logs.slice(0, 5).length}
-                  subtitle="Latest activities"
-                  loading={isLoading}
-                  onClick={() => navigateToTab('logs')}
-                />
-
-                <SummaryContentWidget
-                  title="Agent Activity"
-                  icon={Users}
-                  color="green"
-                  count={agents.length}
-                  subtitle="Active agents"
-                  loading={isLoading}
-                  onClick={() => navigateToTab('agents')}
-                />
-              </div>
+                <div key="totalAgents">
+                  <SummaryStatsWidget
+                    title="Total Agents"
+                    value={totalAgents}
+                    icon={Users}
+                    color="purple"
+                    subtitle="Registered agents"
+                    loading={loading}
+                    onClick={() => setActiveTab('agents')}
+                  />
+                </div>
+                <div key="activeAgents">
+                  <SummaryStatsWidget
+                    title="Active Agents"
+                    value={activeAgents}
+                    icon={CheckCircle}
+                    color="green"
+                    subtitle="Currently online"
+                    loading={loading}
+                    onClick={() => setActiveTab('agents')}
+                  />
+                </div>
+                <div key="highRiskLogs">
+                  <SummaryStatsWidget
+                    title="High Risk Logs"
+                    value={highRiskLogs}
+                    icon={AlertTriangle}
+                    color="red"
+                    subtitle="Risk score >= 80%"
+                    loading={loading}
+                    onClick={() => setActiveTab('alerts')}
+                  />
+                </div>
+                <div key="averageRisk">
+                  <SummaryStatsWidget
+                    title="Average Risk Score"
+                    value={averageRisk}
+                    icon={Shield}
+                    color="orange"
+                    subtitle="Across all logs"
+                    loading={loading}
+                    onClick={() => setActiveTab('risk')}
+                  />
+                </div>
+                <div key="logChart">
+                  <Card className="h-full">
+                    <CardHeader>
+                      <CardTitle>Logs & Risk Over Time</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {loading ? (
+                        <div className="flex items-center justify-center h-[200px]">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+                        </div>
+                      ) : logChartData.length === 0 ? (
+                        <div className="text-center text-gray-500 h-[200px] flex items-center justify-center">
+                          No log data available for chart.
+                        </div>
+                      ) : (
+                        <RechartsResponsiveContainer width="100%" height={200}>
+                          <AreaChart
+                            data={logChartData}
+                            margin={{
+                              top: 10,
+                              right: 30,
+                              left: 0,
+                              bottom: 0,
+                            }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis yAxisId="left" />
+                            <YAxis yAxisId="right" orientation="right" />
+                            <Tooltip />
+                            <Area yAxisId="left" type="monotone" dataKey="count" stroke="#8884d8" fill="#8884d8" fillOpacity={0.3} name="Log Count" />
+                            <Line yAxisId="right" type="monotone" dataKey="risk" stroke="#82ca9d" name="Avg Risk" />
+                          </AreaChart>
+                        </RechartsResponsiveContainer>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+                <div key="agentStatusChart">
+                  <Card className="h-full">
+                    <CardHeader>
+                      <CardTitle>Agent Status Distribution</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {loading ? (
+                        <div className="flex items-center justify-center h-[200px]">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+                        </div>
+                      ) : agentStatusData.length === 0 ? (
+                        <div className="text-center text-gray-500 h-[200px] flex items-center justify-center">
+                          No agent status data available for chart.
+                        </div>
+                      ) : (
+                        <RechartsResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={agentStatusData}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {agentStatusData.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </RechartsResponsiveContainer>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </ResponsiveGridLayout>
             </TabsContent>
 
-            {/* Advanced Analytics Tab */}
-            <TabsContent value="analytics" className="space-y-6">
+            <TabsContent value="logs" className="flex-1 flex flex-col">
+              <DetailedLogsWidget logs={logs} loading={loading} onExport={() => handleExport(logs, 'sentinelmesh_logs.json')} />
+            </TabsContent>
+
+            <TabsContent value="alerts" className="flex-1 flex flex-col">
+              <DetailedAlertsWidget alerts={alerts} loading={loading} onExport={() => handleExport(alerts, 'sentinelmesh_alerts.json')} />
+            </TabsContent>
+
+            <TabsContent value="agents" className="flex-1 flex flex-col">
+              <DetailedAgentsWidget agents={agents} loading={loading} onExport={() => handleExport(agents, 'sentinelmesh_agents.json')} />
+            </TabsContent>
+
+            <TabsContent value="risk" className="flex-1 flex flex-col">
+              <DetailedRiskWidget logs={logs} loading={loading} onExport={() => handleExport(logs, 'sentinelmesh_risk_data.json')} />
+            </TabsContent>
+
+            <TabsContent value="analytics" className="flex-1 flex flex-col">
               <AdvancedAnalytics logs={logs} agents={agents} />
-            </TabsContent>
-
-            {/* Logs Tab */}
-            <TabsContent value="logs" className="space-y-6">
-              <DetailedLogsWidget 
-                logs={logs}
-                loading={isLoading}
-                onExport={exportData}
-              />
-            </TabsContent>
-
-            {/* Alerts Tab */}
-            <TabsContent value="alerts" className="space-y-6">
-              <DetailedAlertsWidget 
-                alerts={logs.filter(log => (log.risk || 0) >= 80)}
-                loading={isLoading}
-                onExport={exportData}
-              />
-            </TabsContent>
-
-            {/* Agents Tab */}
-            <TabsContent value="agents" className="space-y-6">
-              <DetailedAgentsWidget 
-                agents={agents}
-                loading={isLoading}
-              />
-            </TabsContent>
-
-            {/* Risk Tab */}
-            <TabsContent value="risk" className="space-y-6">
-              <DetailedRiskWidget 
-                logs={logs}
-                loading={isLoading}
-              />
             </TabsContent>
           </Tabs>
         </main>
-      </ResponsiveContainer>
+      </div>
     </div>
   );
 };
 
-// Wrap App with AuthProvider
-const AppWithAuth = () => {
-  return (
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  );
-};
+export default App;
 
-export default AppWithAuth;
+
