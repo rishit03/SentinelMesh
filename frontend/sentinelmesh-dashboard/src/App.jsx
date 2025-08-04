@@ -142,6 +142,7 @@ const MobileHeader = ({
             {/* Mobile Menu Button */}
             <Button
               onClick={toggleMenu}
+            
               variant="ghost"
               size="sm"
               className="p-2"
