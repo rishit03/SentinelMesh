@@ -381,10 +381,10 @@ const Dashboard = () => {
   const { user, logout } = useAuth()
   const { logs, alerts, loading, isConnected, fetchData } = useLogsData();
   const [stats, setStats] = useState({})
-  const [darkMode, setDarkMode] = useTheme();
-  const [notifications, setNotifications] = useNotificationsToggle();
-  const [autoRefresh, setAutoRefresh] = useAutoRefreshToggle();
-  const isMobile = useMobileDetection();
+  const [darkMode, setDarkMode] = useTheme(); // Using useTheme hook
+  const [notifications, setNotifications] = useNotificationsToggle(); // Using useNotificationsToggle hook
+  const [autoRefresh, setAutoRefresh] = useAutoRefreshToggle(); // Using useAutoRefreshToggle hook
+  const isMobile = useMobileDetection(); // Using useMobileDetection hook
   const [activeTab, setActiveTab] = useState('dashboard')
 
   // Update stats whenever logs or alerts change
