@@ -94,36 +94,35 @@ const SummaryContentWidget = ({ title, icon: Icon, color = 'blue', count, subtit
       className="h-full overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200"
       onClick={handleClick}
     >
-      <CardContent className="p-6 h-full flex flex-col"> {/* Ensure flex-col for vertical stacking */}
-        <div className="flex items-center justify-between mb-4"> {/* Top section: icon, title, subtitle, arrow */}
-          <div className="flex items-center space-x-3">
-            <div className={`p-3 rounded-xl bg-${color}-100 dark:bg-${color}-900/30`}>
-              <Icon className={`h-6 w-6 text-${color}-600 dark:text-${color}-400`} />
+      <CardContent className="p-6 h-full flex flex-col justify-between"> {/* Main flex container */}
+        <div> {/* Top section: icon, title, subtitle, arrow */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className={`p-3 rounded-xl bg-${color}-100 dark:bg-${color}-900/30`}>
+                <Icon className={`h-6 w-6 text-${color}-600 dark:text-${color}-400`} />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                  {title}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {subtitle}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                {title}
-              </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {subtitle}
-              </p>
-            </div>
+            <ChevronRight className="h-5 w-5 text-slate-400" />
           </div>
-          <ChevronRight className="h-5 w-5 text-slate-400" />
         </div>
         
-        {/* This div now correctly takes remaining space and pushes content to bottom */}
-        <div className="flex-1 flex flex-col justify-end"> {/* Added flex-col and justify-end here */}
-          <div className="flex items-end justify-between"> {/* Original bottom section content */}
-            <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              {loading ? (
-                <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-10 w-20 rounded" />
-              ) : (
-                <AnimatedCounter value={count} />
-              )}
-            </div>
-            <div className={`w-3 h-3 rounded-full bg-${color}-500`} />
+        <div className="flex items-end justify-between mt-auto"> {/* Bottom section: AnimatedCounter and colored dot */}
+          <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+            {loading ? (
+              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-10 w-20 rounded" />
+            ) : (
+              <AnimatedCounter value={count} />
+            )}
           </div>
+          <div className={`w-3 h-3 rounded-full bg-${color}-500`} />
         </div>
       </CardContent>
     </Card>
