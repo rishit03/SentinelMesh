@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Satellite,
@@ -23,11 +23,19 @@ import useLayoutPersistence from '../hooks/useLayoutPersistence.js';
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
 // Summary Widget Components (for Dashboard tab)
-const SummaryStatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, subtitle, loading = false, onClick }) => {
+const SummaryStatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, subtitle, loading = false, onClick, isDragging }) => {
+  const handleClick = (e) => {
+    if (isDragging) {
+      e.stopPropagation(); // Prevent click if dragging
+      return;
+    }
+    onClick();
+  };
+
   return (
     <Card 
       className="h-full overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200"
-      onClick={onClick}
+      onClick={handleClick}
     >
       <CardContent className="p-4 h-full flex flex-col justify-between">
         <div className="flex items-center justify-between mb-2">
@@ -72,11 +80,19 @@ const SummaryStatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, s
   );
 };
 
-const SummaryContentWidget = ({ title, icon: Icon, color = 'blue', count, subtitle, loading = false, onClick }) => {
+const SummaryContentWidget = ({ title, icon: Icon, color = 'blue', count, subtitle, loading = false, onClick, isDragging }) => {
+  const handleClick = (e) => {
+    if (isDragging) {
+      e.stopPropagation(); // Prevent click if dragging
+      return;
+    }
+    onClick();
+  };
+
   return (
     <Card 
       className="h-full overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200"
-      onClick={onClick}
+      onClick={handleClick}
     >
       <CardContent className="p-6 h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
@@ -118,6 +134,8 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
     }
   };
 
+  const [isDragging, setIsDragging] = useState(false);
+
   // Default layout for different breakpoints
   const defaultLayouts = {
     lg: [
@@ -158,6 +176,17 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
     setLayouts(allLayouts);
   };
 
+  const onDragStart = () => {
+    setIsDragging(true);
+  };
+
+  const onDragStop = () => {
+    // A small delay to ensure the click event doesn't fire immediately after drag stop
+    setTimeout(() => {
+      setIsDragging(false);
+    }, 50);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -186,6 +215,8 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
         className="layout"
         layouts={layouts}
         onLayoutChange={onLayoutChange}
+        onDragStart={onDragStart}
+        onDragStop={onDragStop}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         cols={{ lg: 4, md: 4, sm: 1, xs: 1, xxs: 1 }}
         rowHeight={150}
@@ -201,6 +232,7 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
             subtitle="Average security risk percentage"
             loading={loading}
             onClick={() => handleNavigateToTab('risk')}
+            isDragging={isDragging}
           />
         </div>
         
@@ -213,6 +245,7 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
             trend={5}
             loading={loading}
             onClick={() => handleNavigateToTab('logs')}
+            isDragging={isDragging}
           />
         </div>
         
@@ -224,6 +257,7 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
             color="red"
             loading={loading}
             onClick={() => handleNavigateToTab('alerts')}
+            isDragging={isDragging}
           />
         </div>
         
@@ -235,6 +269,7 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
             color="green"
             loading={loading}
             onClick={() => handleNavigateToTab('agents')}
+            isDragging={isDragging}
           />
         </div>
 
@@ -247,6 +282,7 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
             subtitle="Real-time log stream from your AI agents"
             loading={loading}
             onClick={() => handleNavigateToTab('logs')}
+            isDragging={isDragging}
           />
         </div>
         
@@ -259,6 +295,7 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
             subtitle="High-risk events requiring attention"
             loading={loading}
             onClick={() => handleNavigateToTab('alerts')}
+            isDragging={isDragging}
           />
         </div>
         
@@ -271,6 +308,7 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
             subtitle="Message volume by agent"
             loading={loading}
             onClick={() => handleNavigateToTab('agents')}
+            isDragging={isDragging}
           />
         </div>
         
@@ -283,6 +321,7 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
             subtitle="Security risk distribution and trends"
             loading={loading}
             onClick={() => handleNavigateToTab('risk')}
+            isDragging={isDragging}
           />
         </div>
       </ResponsiveGridLayout>
@@ -291,5 +330,3 @@ const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, on
 };
 
 export default DashboardPage;
-
-
