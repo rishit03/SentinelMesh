@@ -35,7 +35,10 @@ import {
   RotateCcw,
   Save,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  UserCog,
+  Brain,
+  Target
 } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -51,609 +54,1029 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer as RechartsResponsiveContainer,
+  Legend,
+  ResponsiveContainer,
   LineChart,
   Line,
+  AreaChart,
+  Area,
   PieChart,
   Pie,
   Cell,
-  Area,
-  AreaChart
+  ScatterChart,
+  Scatter,
+  ComposedChart
 } from 'recharts'
-import AnimatedCounter from './components/AnimatedCounter.jsx'
-import StatusIndicator from './components/StatusIndicator.jsx'
-import Login from './Login.jsx'
-import Register from './Register.jsx'
-import { AuthProvider, useAuth } from './AuthContext.jsx'
-import { Responsive, WidthProvider } from 'react-grid-layout'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu.jsx'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog.jsx'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select.jsx'
+import { Label } from '@/components/ui/label.jsx'
+import { Textarea } from '@/components/ui/textarea.jsx'
+import { Separator } from '@/components/ui/separator.jsx'
+import { Progress } from '@/components/ui/progress.jsx'
+import { Checkbox } from '@/components/ui/checkbox.jsx'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.jsx'
+import { ScrollArea } from '@/components/ui/scroll-area.jsx'
+import { Toaster } from '@/components/ui/sonner.jsx'
+import { toast } from 'sonner'
+
+// Import user management pages
+import UsersPage from './pages/UsersPage.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
+
+// Import user utilities
 import './App.css'
 
-// Import the new page components
-import LogsPage from './pages/LogsPage.jsx'
-import AlertsPage from './pages/AlertsPage.jsx'
-import AgentsPage from './pages/AgentsPage.jsx'
-import RiskPage from './pages/RiskPage.jsx'
-import DashboardPage from './pages/DashboardPage.jsx'
+// Authentication Context
+const AuthContext = React.createContext()
 
-// Import custom hooks
-import useLogsData from './hooks/useLogsData.js'
-import useTheme from './hooks/useTheme.js'
-import useMobileDetection from './hooks/useMobileDetection.js'
-import useNotificationsToggle from './hooks/useNotificationsToggle.js'
-import useAutoRefreshToggle from './hooks/useAutoRefreshToggle.js'
+const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(localStorage.getItem('token'))
+  const [user, setUser] = useState(null)
 
-const ResponsiveGridLayout = WidthProvider(Responsive)
+  useEffect(() => {
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        setUser(payload)
+      } catch (error) {
+        console.error('Invalid token:', error)
+        localStorage.removeItem('token')
+        setToken(null)
+      }
+    }
+  }, [token])
 
-// INLINED MobileHeader Component (as it was in your original App.jsx)
-const MobileHeader = ({
-  user,
-  isConnected,
-  systemStatus,
-  darkMode,
-  setDarkMode,
-  notifications,
-  setNotifications,
-  autoRefresh,
-  setAutoRefresh,
-  onRefresh,
-  onLogout,
-  loading = false,
-  onTabChange // Added for mobile menu tab navigation
-}) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const login = (newToken) => {
+    localStorage.setItem('token', newToken)
+    setToken(newToken)
+  }
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const closeMenu = () => setIsMenuOpen(false);
-
-  const handleMenuItemClick = (tab) => {
-    onTabChange(tab);
-    closeMenu();
-  };
+  const logout = () => {
+    localStorage.removeItem('token')
+    setToken(null)
+    setUser(null)
+  }
 
   return (
-    <>
-      {/* Mobile Header */}
-      <motion.header 
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-50 backdrop-blur-xl bg-white/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-700 shadow-lg lg:hidden"
-      >
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Logo and Status */}
-            <motion.div 
-              className="flex items-center space-x-3"
-              whileHover={{ scale: 1.05 }}
-            >
-              <div className="relative">
-                <Satellite className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                <div className="absolute -top-1 -right-1">
-                  <StatusIndicator status={systemStatus} size="sm" />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  SentinelMesh
-                </h1>
-                <div className="flex items-center space-x-1">
-                  <p className="text-xs text-slate-600 dark:text-slate-400">Dashboard</p>
-                  {isConnected ? (
-                    <Wifi className="h-3 w-3 text-green-500" />
-                  ) : (
-                    <WifiOff className="h-3 w-3 text-red-500" />
-                  )}
-                </div>
-              </div>
-            </motion.div>
+    <AuthContext.Provider value={{ token, user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
 
-            {/* Mobile Menu Button */}
+const useAuth = () => {
+  const context = React.useContext(AuthContext)
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+  return context
+}
+
+// Login Component
+const Login = ({ onLogin }) => {
+  const [isLogin, setIsLogin] = useState(true)
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    org: '',
+    role: 'user'
+  })
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      if (isLogin) {
+        // Login
+        const formDataObj = new FormData()
+        formDataObj.append('username', formData.username)
+        formDataObj.append('password', formData.password)
+
+        const response = await fetch('/api/token', {
+          method: 'POST',
+          body: formDataObj,
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          onLogin(data.access_token)
+          toast.success('Login successful!')
+        } else {
+          const error = await response.json()
+          toast.error(error.detail || 'Login failed')
+        }
+      } else {
+        // Register
+        const response = await fetch('/api/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        })
+
+        if (response.ok) {
+          toast.success('Registration successful! Please login.')
+          setIsLogin(true)
+          setFormData({ username: '', password: '', org: '', role: 'user' })
+        } else {
+          const error = await response.json()
+          toast.error(error.detail || 'Registration failed')
+        }
+      }
+    } catch (error) {
+      console.error('Auth error:', error)
+      toast.error('An error occurred. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 bg-primary/10 rounded-full">
+              <Satellite className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl">SentinelMesh</CardTitle>
+          <CardDescription>
+            {isLogin ? 'Sign in to your account' : 'Create a new account'}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+              />
+            </div>
+            {!isLogin && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="org">Organization</Label>
+                  <Input
+                    id="org"
+                    type="text"
+                    value={formData.org}
+                    onChange={(e) => setFormData({ ...formData, org: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Role</Label>
+                  <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  {isLogin ? 'Signing in...' : 'Creating account...'}
+                </div>
+              ) : (
+                isLogin ? 'Sign In' : 'Create Account'
+              )}
+            </Button>
+          </form>
+          <div className="mt-4 text-center">
             <Button
-              onClick={toggleMenu}
-            
-              variant="ghost"
-              size="sm"
-              className="p-2"
+              variant="link"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-sm"
             >
-              <motion.div
-                animate={{ rotate: isMenuOpen ? 90 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </motion.div>
+              {isLogin ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
             </Button>
           </div>
-        </div>
-      </motion.header>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <>
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-              onClick={closeMenu}
-            />
-
-            {/* Menu Panel */}
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white dark:bg-slate-900 shadow-2xl z-50 lg:hidden"
-            >
-              <div className="flex flex-col h-full">
-                {/* Menu Header */}
-                <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                    Menu
-                  </h2>
-                  <Button
-                    onClick={closeMenu}
-                    variant="ghost"
-                    size="sm"
-                    className="p-2"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                {/* User Info */}
-                <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 dark:text-slate-100">
-                        {user?.username}
-                      </p>
-                      <Badge variant="outline" className="text-xs">
-                        {user?.org}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Settings */}
-                <div className="flex-1 p-4 space-y-6">
-                  {/* Theme Toggle */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <Settings className="h-4 w-4" />
-                      Appearance
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Sun className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                        <span className="text-sm text-slate-700 dark:text-slate-300">Dark Mode</span>
-                        <Moon className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                      </div>
-                      <Switch checked={darkMode} onCheckedChange={setDarkMode} />
-                    </div>
-                  </div>
-
-                  {/* Notifications */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <Bell className="h-4 w-4" />
-                      Notifications
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-700 dark:text-slate-300">
-                        Enable notifications
-                      </span>
-                      <Switch checked={notifications} onCheckedChange={setNotifications} />
-                    </div>
-                  </div>
-
-                  {/* Auto Refresh */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <RefreshCw className="h-4 w-4" />
-                      Auto Refresh
-                    </h3>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-700 dark:text-slate-300">
-                        Auto refresh data
-                      </span>
-                      <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">
-                      Actions
-                    </h3>
-                    <div className="space-y-2">
-                      <Button
-                        onClick={() => {
-                          onRefresh();
-                          closeMenu();
-                        }}
-                        disabled={loading}
-                        variant="outline"
-                        size="sm"
-                        className="w-full justify-start"
-                      >
-                        <motion.div
-                          animate={loading ? { rotate: 360 } : {}}
-                          transition={{ duration: 1, repeat: loading ? Infinity : 0 }}
-                          className="mr-2"
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </motion.div>
-                        Refresh Data
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Logout */}
-                <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-                  <Button
-                    onClick={() => {
-                      onLogout();
-                      closeMenu();
-                    }}
-                    variant="outline"
-                    size="sm"
-                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
-  );
-};
-
-// INLINED ResponsiveContainer Component (as it was in your original App.jsx)
-const ResponsiveContainer = ({
-  children,
-  className = "",
-  maxWidth = "7xl",
-  padding = "responsive"
-}) => {
-  const getPaddingClasses = () => {
-    switch (padding) {
-      case 'none':
-        return '';
-      case 'sm':
-        return 'px-4 py-2 sm:px-6 sm:py-4';
-      case 'md':
-        return 'px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8';
-      case 'lg':
-        return 'px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12';
-      case 'responsive':
-      default:
-        return 'px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-8';
-    }
-  };
-
-  const getMaxWidthClass = () => {
-    const maxWidthMap = {
-      'sm': 'max-w-sm',
-      'md': 'max-w-md',
-      'lg': 'max-w-lg',
-      'xl': 'max-w-xl',
-      '2xl': 'max-w-2xl',
-      '3xl': 'max-w-3xl',
-      '4xl': 'max-w-4xl',
-      '5xl': 'max-w-5xl',
-      '6xl': 'max-w-6xl',
-      '7xl': 'max-w-7xl',
-      'full': 'max-w-full',
-      'none': ''
-    };
-    return maxWidthMap[maxWidth] || 'max-w-7xl';
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className={`
-        w-full 
-        ${getMaxWidthClass()} 
-        mx-auto 
-        ${getPaddingClasses()} 
-        ${className}
-      `}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
-// Main Dashboard Component with Tab Navigation
-const Dashboard = () => {
-  const { user, logout } = useAuth()
-  const { logs, alerts, loading, isConnected, fetchData } = useLogsData();
-  const [stats, setStats] = useState({})
-  const [darkMode, setDarkMode] = useTheme(); // Using useTheme hook
-  const [notifications, setNotifications] = useNotificationsToggle(); // Using useNotificationsToggle hook
-  const [autoRefresh, setAutoRefresh] = useAutoRefreshToggle(); // Using useAutoRefreshToggle hook
-  const isMobile = useMobileDetection(); // Using useMobileDetection hook
-  const [activeTab, setActiveTab] = useState('dashboard')
-
-  // Update stats whenever logs or alerts change
-  useEffect(() => {
-    setStats({
-      systemStatus: isConnected ? 'Operational' : 'Disconnected',
-      activeAgents: logs.filter(log => log.sender && log.timestamp && (Date.now() - new Date(log.timestamp).getTime() < 300000)).length, // Agents active in last 5 mins
-      totalLogs: logs.length,
-      highRiskLogs: logs.filter(log => log.risk >= 80).length,
-      avgRisk: logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length) : 0,
-    });
-  }, [logs, alerts, isConnected]);
-
-  const handleExport = useCallback((format) => {
-    console.log(`Exporting logs as ${format}`);
-    // Implement export logic here, potentially using logs state
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-slate-100 flex flex-col lg:flex-row">
-      {/* Mobile Header */}
-      <MobileHeader
-        user={user}
-        isConnected={isConnected}
-        systemStatus={stats.systemStatus}
-        darkMode={darkMode}
-        setDarkMode={setDarkMode}
-        notifications={notifications}
-        setNotifications={setNotifications}
-        autoRefresh={autoRefresh}
-        setAutoRefresh={setAutoRefresh}
-        onRefresh={fetchData}
-        onLogout={logout}
-        loading={loading}
-        onTabChange={setActiveTab}
-      />
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col lg:flex-row">
-          {/* Sidebar Navigation (Desktop) */}
-          <motion.aside
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 shadow-lg p-4 mr-4"
-          >
-            <div className="flex items-center space-x-3 mb-8">
-              <div className="relative">
-                <Satellite className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                <div className="absolute -top-1 -right-1">
-                  <StatusIndicator status={stats.systemStatus} />
-                </div>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  SentinelMesh
-                </h1>
-                <div className="flex items-center space-x-1">
-                  <p className="text-sm text-slate-600 dark:text-slate-400">Dashboard</p>
-                  {isConnected ? (
-                    <Wifi className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <WifiOff className="h-4 w-4 text-red-500" />
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* User Info */}
-            <div className="mb-8 border-b border-slate-200 dark:border-slate-700 pb-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <User className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {user?.username}
-                  </p>
-                  <Badge variant="outline" className="text-sm">
-                    {user?.org}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <nav className="flex-1 space-y-2">
-              <TabsList className="flex flex-col h-auto p-0 bg-transparent">
-                <TabsTrigger
-                  value="dashboard"
-                  onClick={() => setActiveTab('dashboard')}
-                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                >
-                  <Activity className="h-5 w-5 mr-3" />
-                  Dashboard
-                </TabsTrigger>
-                <TabsTrigger
-                  value="logs"
-                  onClick={() => setActiveTab('logs')}
-                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                >
-                  <Clock className="h-5 w-5 mr-3" />
-                  Logs
-                </TabsTrigger>
-                <TabsTrigger
-                  value="alerts"
-                  onClick={() => setActiveTab('alerts')}
-                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                >
-                  <AlertTriangle className="h-5 w-5 mr-3" />
-                  Alerts
-                </TabsTrigger>
-                <TabsTrigger
-                  value="agents"
-                  onClick={() => setActiveTab('agents')}
-                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                >
-                  <Users className="h-5 w-5 mr-3" />
-                  Agents
-                </TabsTrigger>
-                <TabsTrigger
-                  value="risk"
-                  onClick={() => setActiveTab('risk')}
-                  className="w-full justify-start text-lg py-2 px-4 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/20 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400"
-                >
-                  <Shield className="h-5 w-5 mr-3" />
-                  Risk
-                </TabsTrigger>
-              </TabsList>
-            </nav>
-
-            {/* Settings and Logout */}
-            <div className="mt-auto space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-700 dark:text-slate-300">Dark Mode</span>
-                  <Switch checked={darkMode} onCheckedChange={setDarkMode} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-700 dark:text-slate-300">Notifications</span>
-                  <Switch checked={notifications} onCheckedChange={setNotifications} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-700 dark:text-slate-300">Auto Refresh</span>
-                  <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} />
-                </div>
-              </div>
-              <Button
-                onClick={fetchData}
-                disabled={loading}
-                variant="outline"
-                className="w-full"
-              >
-                <motion.div
-                  animate={loading ? { rotate: 360 } : {}}
-                  transition={{ duration: 1, repeat: loading ? Infinity : 0 }}
-                  className="mr-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </motion.div>
-                Refresh Data
-              </Button>
-              <Button
-                onClick={logout}
-                variant="destructive"
-                className="w-full"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </motion.aside>
-
-          {/* Tab Content Area */}
-          <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
-            <TabsContent value="dashboard" className="flex-1">
-              <DashboardPage 
-                logs={logs} 
-                alerts={alerts} 
-                stats={stats} 
-                loading={loading} 
-                onNavigateToTab={setActiveTab} 
-              />
-            </TabsContent>
-
-            <TabsContent value="logs" className="flex-1">
-              <LogsPage 
-                logs={logs} 
-                loading={loading} 
-                onExport={handleExport} 
-              />
-            </TabsContent>
-
-            <TabsContent value="alerts" className="flex-1">
-              <AlertsPage 
-                alerts={alerts} 
-                loading={loading} 
-                onExport={handleExport} 
-              />
-            </TabsContent>
-
-            <TabsContent value="agents" className="flex-1">
-              <AgentsPage 
-                logs={logs} 
-                loading={loading} 
-              />
-            </TabsContent>
-
-            <TabsContent value="risk" className="flex-1">
-              <RiskPage 
-                logs={logs} 
-                loading={loading} 
-              />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </main>
+        </CardContent>
+      </Card>
     </div>
-  );
-};
+  )
+}
 
-// App Content Component
-function AppContent() {
-  const { user, isLoading, login, register } = useAuth()
-  const [showRegister, setShowRegister] = useState(false)
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-slate-600 dark:text-slate-300">
-            Please wait while initializing dashboard...
+// Simple Analytics Component (placeholder)
+const AdvancedAnalytics = ({ logs, agents }) => {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Advanced Analytics</h1>
+          <p className="text-muted-foreground">
+            AI-powered insights and predictive analysis
           </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              AI Insights
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <h4 className="font-medium mb-2">Threat Pattern Analysis</h4>
+                <p className="text-sm text-muted-foreground">
+                  AI has detected unusual activity patterns in the last 24 hours. 
+                  Risk levels have increased by 15% compared to the previous week.
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <h4 className="font-medium mb-2">System Health</h4>
+                <p className="text-sm text-muted-foreground">
+                  All agents are performing within normal parameters. 
+                  No anomalies detected in system behavior.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Predictive Alerts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 rounded-lg">
+                <h4 className="font-medium mb-2">Potential Risk Spike</h4>
+                <p className="text-sm text-muted-foreground">
+                  Based on current trends, there's a 70% probability of increased 
+                  security events in the next 6 hours.
+                </p>
+              </div>
+              <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                <h4 className="font-medium mb-2">Resource Optimization</h4>
+                <p className="text-sm text-muted-foreground">
+                  Consider scaling agent deployment in the US-East region 
+                  to handle predicted load increase.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
+// Main App Content Component
+const AppContent = () => {
+  const { user, logout } = useAuth()
+  const [logs, setLogs] = useState([])
+  const [agents, setAgents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [darkMode, setDarkMode] = useState(false)
+  const [activeTab, setActiveTab] = useState('dashboard')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [riskFilter, setRiskFilter] = useState([0, 100])
+  const [senderFilter, setSenderFilter] = useState('all')
+  const [contextFilter, setContextFilter] = useState('all')
+  const [timeRange, setTimeRange] = useState('24h')
+
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin'
+
+  // Fetch data function
+  const fetchData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/logs', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setLogs(Array.isArray(data.logs) ? data.logs : [])
+        
+        // Generate mock agents data from logs
+        const uniqueSenders = [...new Set((data.logs || []).map(log => log.sender))]
+        const mockAgents = uniqueSenders.map(sender => ({
+          id: sender,
+          name: sender,
+          status: Math.random() > 0.2 ? 'online' : 'offline',
+          lastSeen: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+          version: `v${Math.floor(Math.random() * 3) + 1}.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`,
+          location: ['US-East', 'EU-West', 'Asia-Pacific'][Math.floor(Math.random() * 3)],
+          cpu: Math.floor(Math.random() * 100),
+          memory: Math.floor(Math.random() * 100),
+          network: Math.floor(Math.random() * 100)
+        }))
+        setAgents(Array.isArray(mockAgents) ? mockAgents : [])
+      } else {
+        console.error('Failed to fetch data')
+        setLogs([])
+        setAgents([])
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error)
+      setLogs([])
+      setAgents([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // Auto-refresh effect
+  useEffect(() => {
+    fetchData()
+    
+    if (autoRefresh) {
+      const interval = setInterval(fetchData, 30000) // 30 seconds
+      return () => clearInterval(interval)
+    }
+  }, [fetchData, autoRefresh])
+
+  // Dark mode effect
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [darkMode])
+
+  // Filter logs based on current filters
+  const filteredLogs = useMemo(() => {
+    if (!Array.isArray(logs)) return []
+    
+    return logs.filter(log => {
+      const matchesSearch = searchTerm === '' || 
+        log.payload?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.sender?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.context?.toLowerCase().includes(searchTerm.toLowerCase())
+      
+      const matchesRisk = log.risk >= riskFilter[0] && log.risk <= riskFilter[1]
+      const matchesSender = senderFilter === 'all' || log.sender === senderFilter
+      const matchesContext = contextFilter === 'all' || log.context === contextFilter
+      
+      return matchesSearch && matchesRisk && matchesSender && matchesContext
+    })
+  }, [logs, searchTerm, riskFilter, senderFilter, contextFilter])
+
+  // Get unique senders and contexts for filters
+  const uniqueSenders = useMemo(() => {
+    if (!Array.isArray(logs)) return []
+    return [...new Set(logs.map(log => log.sender).filter(Boolean))]
+  }, [logs])
+
+  const uniqueContexts = useMemo(() => {
+    if (!Array.isArray(logs)) return []
+    return [...new Set(logs.map(log => log.context).filter(Boolean))]
+  }, [logs])
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    if (!Array.isArray(logs) || !Array.isArray(agents)) {
+      return {
+        totalLogs: 0,
+        highRiskLogs: 0,
+        activeAgents: 0,
+        avgRiskScore: 0
+      }
+    }
+
+    const totalLogs = logs.length
+    const highRiskLogs = logs.filter(log => log.risk >= 80).length
+    const activeAgents = agents.filter(agent => agent.status === 'online').length
+    const avgRiskScore = logs.length > 0 
+      ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length)
+      : 0
+
+    return {
+      totalLogs,
+      highRiskLogs,
+      activeAgents,
+      avgRiskScore
+    }
+  }, [logs, agents])
+
+  // Navigation items
+  const navigationItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'logs', label: 'Logs', icon: Activity },
+    { id: 'alerts', label: 'Alerts', icon: AlertTriangle },
+    { id: 'agents', label: 'Agents', icon: Users },
+    { id: 'risk', label: 'Risk Analysis', icon: Shield },
+    { id: 'analytics', label: 'Analytics', icon: Brain },
+    ...(isAdmin ? [{ id: 'users', label: 'User Management', icon: UserCog }] : []),
+    { id: 'profile', label: 'Profile', icon: User },
+  ]
+
+  // Mobile navigation
+  const MobileNav = () => (
+    <AnimatePresence>
+      {mobileMenuOpen && (
+        <motion.div
+          initial={{ opacity: 0, x: -300 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -300 }}
+          className="fixed inset-0 z-50 lg:hidden"
+        >
+          <div className="fixed inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
+          <motion.div className="fixed left-0 top-0 h-full w-64 bg-background border-r shadow-lg">
+            <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center gap-2">
+                <Satellite className="h-6 w-6 text-primary" />
+                <span className="font-semibold">SentinelMesh</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <nav className="p-4 space-y-2">
+              {navigationItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant={activeTab === item.id ? 'default' : 'ghost'}
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setActiveTab(item.id)
+                    setMobileMenuOpen(false)
+                  }}
+                >
+                  <item.icon className="h-4 w-4 mr-2" />
+                  {item.label}
+                </Button>
+              ))}
+            </nav>
+          </motion.div>
         </motion.div>
+      )}
+    </AnimatePresence>
+  )
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
       </div>
     )
   }
 
-  if (!user) {
-    return showRegister ? (
-      <Register
-        onRegister={register}
-        onSwitchToLogin={() => setShowRegister(false)}
-        isLoading={isLoading}
-      />
-    ) : (
-      <Login
-        onLogin={login}
-        onSwitchToRegister={() => setShowRegister(true)}
-        isLoading={isLoading}
-      />
-    )
-  }
-
-  return <Dashboard />
-}
-
-// Main App Component
-function App() {
   return (
-    <AppContent />
+    <div className="min-h-screen bg-background">
+      <MobileNav />
+      
+      {/* Header */}
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Satellite className="h-6 w-6 text-primary" />
+              <span className="font-semibold text-lg">SentinelMesh</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setDarkMode(!darkMode)}
+            >
+              {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+            >
+              <Bell className={`h-4 w-4 ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span className="hidden sm:inline">{user?.sub}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user?.sub}</p>
+                    <p className="text-xs text-muted-foreground">{user?.org}</p>
+                    {user?.role && (
+                      <Badge variant={user.role === 'admin' ? 'destructive' : 'secondary'} className="w-fit">
+                        {user.role}
+                      </Badge>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setActiveTab('profile')}>
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab('settings')}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          {/* Desktop Navigation */}
+          <TabsList className="hidden lg:grid w-full grid-cols-8 lg:grid-cols-8">
+            {navigationItems.map((item) => (
+              <TabsTrigger key={item.id} value={item.id} className="flex items-center gap-2">
+                <item.icon className="h-4 w-4" />
+                <span className="hidden xl:inline">{item.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          {/* Tab Contents */}
+          <TabsContent value="dashboard">
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold">Dashboard</h1>
+                  <p className="text-muted-foreground">
+                    Real-time security monitoring and analytics
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchData}
+                    disabled={loading}
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={autoRefresh}
+                      onCheckedChange={setAutoRefresh}
+                    />
+                    <span className="text-sm text-muted-foreground">Auto-refresh</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Total Logs</p>
+                        <p className="text-2xl font-bold">{stats.totalLogs}</p>
+                      </div>
+                      <Activity className="h-8 w-8 text-blue-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">High Risk</p>
+                        <p className="text-2xl font-bold">{stats.highRiskLogs}</p>
+                      </div>
+                      <AlertTriangle className="h-8 w-8 text-red-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Active Agents</p>
+                        <p className="text-2xl font-bold">{stats.activeAgents}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">Avg Risk Score</p>
+                        <p className="text-2xl font-bold">{stats.avgRiskScore}</p>
+                      </div>
+                      <Shield className="h-8 w-8 text-orange-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="logs">
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold">Security Logs</h1>
+                  <p className="text-muted-foreground">
+                    Monitor and analyze security events in real-time
+                  </p>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Filters</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="space-y-2">
+                      <Label>Search</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search logs..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Sender</Label>
+                      <Select value={senderFilter} onValueChange={setSenderFilter}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Senders</SelectItem>
+                          {uniqueSenders.map(sender => (
+                            <SelectItem key={sender} value={sender}>{sender}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Context</Label>
+                      <Select value={contextFilter} onValueChange={setContextFilter}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Contexts</SelectItem>
+                          {uniqueContexts.map(context => (
+                            <SelectItem key={context} value={context}>{context}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Risk Range: {riskFilter[0]} - {riskFilter[1]}</Label>
+                      <Slider
+                        value={riskFilter}
+                        onValueChange={setRiskFilter}
+                        max={100}
+                        min={0}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Logs Table */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Logs ({filteredLogs.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {filteredLogs.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <p className="text-muted-foreground">No logs found matching your filters</p>
+                      </div>
+                    ) : (
+                      filteredLogs.slice(0, 50).map((log, index) => (
+                        <div key={log.id || index} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={log.risk >= 80 ? 'destructive' : log.risk >= 50 ? 'default' : 'secondary'}>
+                                Risk: {log.risk}
+                              </Badge>
+                              <Badge variant="outline">{log.sender}</Badge>
+                              <Badge variant="outline">{log.context}</Badge>
+                            </div>
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-sm">{log.payload}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="alerts">
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold">Security Alerts</h1>
+                  <p className="text-muted-foreground">
+                    High-priority security events requiring attention
+                  </p>
+                </div>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Active Alerts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {filteredLogs.filter(log => log.risk >= 80).length === 0 ? (
+                      <div className="text-center py-8">
+                        <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                        <p className="text-muted-foreground">No active alerts</p>
+                      </div>
+                    ) : (
+                      filteredLogs.filter(log => log.risk >= 80).map((log, index) => (
+                        <div key={log.id || index} className="border border-red-200 rounded-lg p-4 space-y-2 bg-red-50 dark:bg-red-950/20">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <AlertTriangle className="h-4 w-4 text-red-500" />
+                              <Badge variant="destructive">Critical</Badge>
+                              <Badge variant="outline">{log.sender}</Badge>
+                            </div>
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </span>
+                          </div>
+                          <p className="text-sm font-medium">{log.payload}</p>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="destructive">
+                              Investigate
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              Dismiss
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="agents">
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold">Agent Management</h1>
+                  <p className="text-muted-foreground">
+                    Monitor and manage connected security agents
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {agents.map((agent) => (
+                  <Card key={agent.id}>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{agent.name}</CardTitle>
+                        <Badge variant={agent.status === 'online' ? 'default' : 'secondary'}>
+                          {agent.status}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>CPU Usage</span>
+                          <span>{agent.cpu}%</span>
+                        </div>
+                        <Progress value={agent.cpu} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Memory Usage</span>
+                          <span>{agent.memory}%</span>
+                        </div>
+                        <Progress value={agent.memory} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Network Usage</span>
+                          <span>{agent.network}%</span>
+                        </div>
+                        <Progress value={agent.network} />
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <p>Version: {agent.version}</p>
+                        <p>Location: {agent.location}</p>
+                        <p>Last seen: {new Date(agent.lastSeen).toLocaleString()}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="risk">
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h1 className="text-3xl font-bold">Risk Analysis</h1>
+                  <p className="text-muted-foreground">
+                    Comprehensive risk assessment and threat analysis
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Risk Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Low Risk (0-30)', value: filteredLogs.filter(log => log.risk <= 30).length, fill: '#10b981' },
+                            { name: 'Medium Risk (31-70)', value: filteredLogs.filter(log => log.risk > 30 && log.risk <= 70).length, fill: '#f59e0b' },
+                            { name: 'High Risk (71-100)', value: filteredLogs.filter(log => log.risk > 70).length, fill: '#ef4444' }
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Risk Trends</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={filteredLogs.slice(-20).map((log, index) => ({
+                        index: index + 1,
+                        risk: log.risk,
+                        timestamp: new Date(log.timestamp).toLocaleTimeString()
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="index" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="risk" stroke="#8884d8" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <AdvancedAnalytics logs={logs} agents={agents} />
+          </TabsContent>
+
+          {isAdmin && (
+            <TabsContent value="users">
+              <UsersPage />
+            </TabsContent>
+          )}
+
+          <TabsContent value="profile">
+            <ProfilePage />
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      <Toaster />
+    </div>
   )
 }
 
-export default App
+// Main App Component
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppWrapper />
+    </AuthProvider>
+  )
+}
 
+// App Wrapper to handle authentication
+const AppWrapper = () => {
+  const { token, login } = useAuth()
+
+  if (!token) {
+    return <Login onLogin={login} />
+  }
+
+  return <AppContent />
+}
+
+export default App
 

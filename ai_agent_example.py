@@ -11,7 +11,7 @@ AGENT_ORG = os.getenv("AGENT_ORG", "rishit-org") # This should match the org of 
 
 # Authentication credentials for the log sender
 # In a real scenario, these might be loaded from a secure vault or environment variables
-SENTINELMESH_USERNAME = os.getenv("SENTINELMESH_USERNAME", "rishit12") # Replace with your registered username
+SENTINELMESH_USERNAME = os.getenv("SENTINELMESH_USERNAME", "rishit03") # Replace with your registered username
 SENTINELMESH_PASSWORD = os.getenv("SENTINELMESH_PASSWORD", "12345678") # Replace with your password
 
 # Initialize the log sender

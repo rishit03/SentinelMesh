@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from enum import Enum
 
 from pydantic import BaseModel, Field
 
@@ -249,17 +250,24 @@ class ErrorResponse(BaseModel):
         }
 
 
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    USER = "user"
+
+
 class User(BaseModel):
     """Model for a user (without password)."""
 
     username: str = Field(..., description="Unique username")
     org: str = Field(..., description="Organization identifier")
+    role: UserRole = Field(UserRole.USER, description="User role")
 
     class Config:
         schema_extra = {
             "example": {
                 "username": "testuser",
                 "org": "example-org",
+                "role": "user",
             }
         }
 
@@ -293,6 +301,7 @@ class UserCreate(BaseModel):
     username: str = Field(..., description="Unique username")
     password: str = Field(..., description="User password")
     org: str = Field(..., description="Organization identifier")
+    role: UserRole = Field(UserRole.USER, description="User role")
 
     class Config:
         schema_extra = {
@@ -300,6 +309,25 @@ class UserCreate(BaseModel):
                 "username": "newuser",
                 "password": "securepassword123",
                 "org": "new-org",
+                "role": "user",
+            }
+        }
+
+
+class UserUpdate(BaseModel):
+    """Model for user update request."""
+    username: Optional[str] = Field(None, description="Unique username")
+    password: Optional[str] = Field(None, description="User password")
+    org: Optional[str] = Field(None, description="Organization identifier")
+    role: Optional[UserRole] = Field(None, description="User role")
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "username": "updateduser",
+                "password": "newsecurepassword",
+                "org": "updated-org",
+                "role": "admin",
             }
         }
 
@@ -308,11 +336,55 @@ class UserResponse(BaseModel):
     """Model for user response (excluding password)."""
     username: str = Field(..., description="Unique username")
     org: str = Field(..., description="Organization identifier")
+    role: UserRole = Field(..., description="User role")
 
     class Config:
         schema_extra = {
             "example": {
                 "username": "newuser",
                 "org": "new-org",
+                "role": "user",
             }
         }
+
+
+class UsersListResponse(BaseModel):
+    """Response model for users list endpoint."""
+    users: List[UserResponse] = Field(..., description="List of users")
+    total: int = Field(..., description="Total number of users")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "users": [
+                    {
+                        "username": "admin",
+                        "org": "example-org",
+                        "role": "admin",
+                    },
+                    {
+                        "username": "user1",
+                        "org": "example-org",
+                        "role": "user",
+                    }
+                ],
+                "total": 2,
+            }
+        }
+
+
+class UserStatsResponse(BaseModel):
+    """Response model for user statistics."""
+    total_users: int = Field(..., description="Total number of users")
+    users_by_role: Dict[str, int] = Field(..., description="User count by role")
+    users_by_org: Dict[str, int] = Field(..., description="User count by organization")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "total_users": 25,
+                "users_by_role": {"admin": 3, "user": 22},
+                "users_by_org": {"example-org": 15, "test-org": 10},
+            }
+        }
+
