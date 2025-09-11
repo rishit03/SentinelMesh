@@ -105,7 +105,6 @@ export const AuthProvider = ({ children }) => {
 
   // Register function
   const register = async (username, password, org) => {
-    setIsLoading(true);
     try {
       const response = await fetch(`${API_BASE}/register`, {
         method: 'POST',
@@ -119,22 +118,20 @@ export const AuthProvider = ({ children }) => {
         }),
       });
 
+      const errorData = await response.json().catch(() => null);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || errorData.message || 'Registration failed');
+        console.error('Registration failed:', response.status, errorData);
+        throw new Error(errorData?.detail || errorData?.error || errorData?.message || `Registration failed (${response.status})`);
       }
 
-      const data = await response.json();
-      
       // After successful registration, automatically log in
       await login(username, password);
       
-      return data;
+      return errorData;
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -255,5 +252,4 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
 

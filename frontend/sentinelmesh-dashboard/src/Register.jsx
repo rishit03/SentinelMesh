@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner';
 
 const Register = ({ onSwitchToLogin }) => {
-  const { register, isLoading } = useAuth();
+  const { register } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -23,14 +24,17 @@ const Register = ({ onSwitchToLogin }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
     
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      setIsSubmitting(false);
       return;
     }
 
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters long');
+      setIsSubmitting(false);
       return;
     }
     
@@ -40,6 +44,8 @@ const Register = ({ onSwitchToLogin }) => {
     } catch (err) {
       setError(err.message || 'Registration failed');
       toast.error(err.message || 'Registration failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -193,11 +199,11 @@ const Register = ({ onSwitchToLogin }) => {
 
         <Button
           type="submit"
-          disabled={isLoading}
+          disabled={isSubmitting}
           className="w-full bg-gradient-accent hover:opacity-90 transition-opacity"
           size="lg"
         >
-          {isLoading ? (
+          {isSubmitting ? (
             <div className="flex items-center justify-center">
               <div className="w-5 h-5 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full animate-spin mr-2" />
               Creating Account...
