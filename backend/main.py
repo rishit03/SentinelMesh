@@ -30,7 +30,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-@app.middleware("http" )
+@app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = datetime.now()
     logger.info(f"Incoming request: {request.method} {request.url}")
@@ -84,7 +84,7 @@ app.include_router(stats_router)
 async def http_exception_handler(
     request: Request,
     exc: HTTPException
-  ) -> JSONResponse:
+ ) -> JSONResponse:
     """Handle HTTP exceptions with structured error responses."""
     logger.error(f"HTTPException: {exc.status_code} - {exc.detail}")
     return JSONResponse(
@@ -132,3 +132,5 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
