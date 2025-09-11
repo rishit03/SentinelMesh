@@ -15,6 +15,7 @@ from models import HealthResponse, ErrorResponse
 from routers.auth import auth_router
 from routers.logs import logs_router
 from routers.stats import stats_router
+from routers.users import users_router
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -86,6 +87,7 @@ async def health_check():
 app.include_router(auth_router)
 app.include_router(logs_router)
 app.include_router(stats_router)
+app.include_router(users_router)
 
 
 @app.exception_handler(HTTPException)
