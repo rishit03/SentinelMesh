@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useAuth } from './AuthContext'
+import Login from './Login'
+import Register from './Register'
 import {
   Satellite,
   Shield,
@@ -172,7 +175,7 @@ const AdvancedAnalytics = ({ logs, agents }) => {
 }
 
 // Main App Content Component
-const App = () => {
+const MainDashboard = () => {
   const [logs, setLogs] = useState([])
   const [agents, setAgents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -735,7 +738,7 @@ const App = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>API Keys</DropdownMenuItem>
-                <DropdownMenuItem>Logout</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.location.reload()}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -798,6 +801,69 @@ const App = () => {
   )
 }
 
+// Main App Component with Authentication
+const App = () => {
+  const { isAuthenticated, isLoading, logout } = useAuth()
+  const [authMode, setAuthMode] = useState('login')
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Satellite className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Loading SentinelMesh...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show login/register screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-surface relative overflow-hidden">
+        {/* Animated background elements */}
+        <div className="absolute inset-0 bg-grid opacity-30" />
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-float" />
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-accent/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+        </div>
+        
+        <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="w-full max-w-md"
+          >
+            <div className="glass-card backdrop-blur-xl">
+              <div className="text-center mb-8">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  className="w-20 h-20 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-primary-glow"
+                >
+                  <Satellite className="w-10 h-10 text-primary-foreground" />
+                </motion.div>
+                <h1 className="text-4xl font-display font-bold mb-2 gradient-text">SentinelMesh</h1>
+                <p className="text-muted-foreground">AI Agent Security Monitor</p>
+              </div>
+              
+              {authMode === 'login' ? (
+                <Login onSwitchToRegister={() => setAuthMode('register')} />
+              ) : (
+                <Register onSwitchToLogin={() => setAuthMode('login')} />
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show main dashboard if authenticated
+  return <MainDashboard />
+}
+
 export default App;
-
-

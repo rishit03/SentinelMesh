@@ -1,12 +1,20 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, User, Lock, Building } from 'lucide-react';
+import { LogIn, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from './AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
-const Login = ({ onLogin, onSwitchToRegister, isLoading }) => {
+const Login = ({ onSwitchToRegister }) => {
+  const { login, isLoading } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
@@ -14,9 +22,11 @@ const Login = ({ onLogin, onSwitchToRegister, isLoading }) => {
     setError('');
     
     try {
-      await onLogin(formData.username, formData.password);
+      await login(formData.username, formData.password);
+      toast.success('Welcome back to SentinelMesh!');
     } catch (err) {
       setError(err.message || 'Login failed');
+      toast.error(err.message || 'Login failed');
     }
   };
 
@@ -28,106 +38,112 @@ const Login = ({ onLogin, onSwitchToRegister, isLoading }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 w-full max-w-md border border-white/20 shadow-2xl"
-      >
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
-          >
-            <LogIn className="w-8 h-8 text-white" />
-          </motion.div>
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-blue-200">Sign in to SentinelMesh Dashboard</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-blue-200 mb-2">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="username" className="text-sm font-medium">
               Username
-            </label>
+            </Label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-300" />
-              <input
-                type="text"
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="username"
                 name="username"
+                type="text"
                 value={formData.username}
                 onChange={handleChange}
                 required
-                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pl-10 bg-background/50 border-input/50 focus:border-primary transition-colors"
                 placeholder="Enter your username"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-blue-200 mb-2">
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-medium">
               Password
-            </label>
+            </Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-blue-300" />
-              <input
-                type="password"
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="password"
                 name="password"
+                type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="pl-10 pr-10 bg-background/50 border-input/50 focus:border-primary transition-colors"
                 placeholder="Enter your password"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
+        </div>
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 text-red-200 text-sm"
-            >
-              {error}
-            </motion.div>
-          )}
-
-          <motion.button
-            type="submit"
-            disabled={isLoading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-destructive text-sm"
           >
-            {isLoading ? (
-              <div className="flex items-center justify-center">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                Signing In...
-              </div>
-            ) : (
-              'Sign In'
-            )}
-          </motion.button>
-        </form>
+            {error}
+          </motion.div>
+        )}
 
-        <div className="mt-6 text-center">
-          <p className="text-blue-200">
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+          size="lg"
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin mr-2" />
+              Signing In...
+            </div>
+          ) : (
+            <div className="flex items-center justify-center">
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign In
+            </div>
+          )}
+        </Button>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background/80 backdrop-blur px-2 text-muted-foreground">Or</span>
+          </div>
+        </div>
+
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">
             Don't have an account?{' '}
             <button
+              type="button"
               onClick={onSwitchToRegister}
-              className="text-blue-400 hover:text-blue-300 font-semibold transition-colors"
+              className="font-semibold text-primary hover:text-primary-glow transition-colors"
             >
-              Sign up
+              Create account
             </button>
           </p>
         </div>
-      </motion.div>
-    </div>
+      </form>
+    </motion.div>
   );
 };
 
 export default Login;
-
