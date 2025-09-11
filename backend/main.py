@@ -12,10 +12,8 @@ from fastapi.staticfiles import StaticFiles
 from sqlite import init_db
 from models import HealthResponse, ErrorResponse
 
-from routers.auth import auth_router
 from routers.logs import logs_router
 from routers.stats import stats_router
-from routers.users import users_router
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -32,36 +30,30 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Configure CORS
+@app.middleware("http" )
+async def log_requests(request: Request, call_next):
+    start_time = datetime.now()
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    
+    response = await call_next(request)
+    
+    process_time = (datetime.now() - start_time).total_seconds()
+    logger.info(f"Request completed: {request.method} {request.url} - Status: {response.status_code} - Time: {process_time:.3f}s")
+    
+    return response
+
+# Configure CORS to allow all origins for testing
 origins = [
-    "http://localhost:5173",  # For local React development
-    "https://pgncwesl.manus.space", # The URL where I deployed the React app (if still in use )
-    "http://localhost:3000",  # Alternative React dev server port
-    "https://sentinelmesh-frontend.onrender.com", # <--- **ADD YOUR DEPLOYED REACT APP URL HERE**
-    # Add any other domains where your frontend might be hosted
+    "*", # Allow all origins for debugging
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_credentials=False, # Must be False when allow_origins is ["*"]
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
-# Conditionally mount static files (React build output) if directory exists
-STATIC_DIR = "frontend/sentinelmesh-dashboard/dist"
-STATIC_INDEX = os.path.join(STATIC_DIR, "index.html")
-
-if os.path.exists(STATIC_DIR):
-    app.mount(
-        "/static",
-        StaticFiles(directory=STATIC_DIR),
-        name="static"
-    )
-    logger.info(f"✅ Static files mounted from {STATIC_DIR}")
-else:
-    logger.warning(f"⚠️  Static directory {STATIC_DIR} not found - React frontend not available")
 
 
 @app.on_event("startup")
@@ -84,17 +76,15 @@ async def health_check():
 
 
 # Include routers
-app.include_router(auth_router)
 app.include_router(logs_router)
 app.include_router(stats_router)
-app.include_router(users_router)
 
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(
     request: Request,
     exc: HTTPException
- ) -> JSONResponse:
+  ) -> JSONResponse:
     """Handle HTTP exceptions with structured error responses."""
     logger.error(f"HTTPException: {exc.status_code} - {exc.detail}")
     return JSONResponse(
@@ -126,36 +116,19 @@ async def general_exception_handler(
     )
 
 
-# Serve React app for all non-API routes (only if React files exist)
-@app.get("/{full_path:path}")
-async def serve_react_app(full_path: str):
-    """
-    Serve the React application for all non-API routes.
-
-    This catch-all route ensures that the React router can handle
-    client-side routing while preserving API functionality.
-    """
-    # Only serve React app for non-API routes
-    api_routes = ("logs", "alerts", "stats", "log", "static", "health", "docs", "redoc", "ws", "register", "token")
-    if not full_path.startswith(api_routes):
-        if os.path.exists(STATIC_INDEX):
-            return FileResponse(STATIC_INDEX)
-        else:
-            # If React frontend is not available, return a simple message
-            return JSONResponse(
-                content={
-                    "message": "SentinelMesh API is running",
-                    "docs": "/docs",
-                    "health": "/health",
-                    "frontend": "React frontend not available in this deployment"
-                }
-            )
-    else:
-        raise HTTPException(status_code=404, detail="Not found")
+# Serve a simple message for the root path
+@app.get("/")
+async def root():
+    return JSONResponse(
+        content={
+            "message": "SentinelMesh API is running",
+            "docs": "/docs",
+            "health": "/health",
+            "frontend": "React frontend is deployed separately"
+        }
+    )
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
