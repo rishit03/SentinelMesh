@@ -99,7 +99,7 @@ import { toast } from 'sonner'
 
 import './App.css'
 
-// Simple Analytics Component
+// Simple Analytics Component (placeholder)
 const AdvancedAnalytics = ({ logs, agents }) => {
   return (
     <div className="space-y-6">
@@ -171,8 +171,8 @@ const AdvancedAnalytics = ({ logs, agents }) => {
   )
 }
 
-// Main App Component
-const App = () => {
+// Main App Content Component
+const AppContent = () => {
   const [logs, setLogs] = useState([])
   const [agents, setAgents] = useState([])
   const [loading, setLoading] = useState(true)
@@ -187,7 +187,7 @@ const App = () => {
   const [contextFilter, setContextFilter] = useState('all')
   const [timeRange, setTimeRange] = useState('24h')
 
-  // Fetch data function (without authentication)
+  // Fetch data function
   const fetchData = useCallback(async () => {
     try {
       const response = await fetch('https://sentinelmesh-api.onrender.com/logs')
@@ -486,48 +486,78 @@ const App = () => {
         <div>
           <h1 className="text-3xl font-bold">Agents</h1>
           <p className="text-muted-foreground">
-            Monitor and manage your AI agent network
+            Manage and monitor your AI agents
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
         </div>
       </div>
 
+      {/* Agent Filters */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {agents.map((agent) => (
+        <Input
+          placeholder="Search agents..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+          icon={<Search className="h-4 w-4 text-muted-foreground" />}
+        />
+        <Select value={senderFilter} onValueChange={setSenderFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="online">Online</SelectItem>
+            <SelectItem value="offline">Offline</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={contextFilter} onValueChange={setContextFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by Location" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Locations</SelectItem>
+            <SelectItem value="US-East">US-East</SelectItem>
+            <SelectItem value="EU-West">EU-West</SelectItem>
+            <SelectItem value="Asia-Pacific">Asia-Pacific</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Agent List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {agents.map(agent => (
           <Card key={agent.id}>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">{agent.name}</CardTitle>
-                <Badge variant={agent.status === 'online' ? 'default' : 'secondary'}>
-                  {agent.status}
-                </Badge>
-              </div>
-              <CardDescription>
-                {agent.location} • {agent.version}
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Satellite className="h-4 w-4" />
+                {agent.name}
+              </CardTitle>
+              <Badge variant={agent.status === 'online' ? 'default' : 'destructive'}>
+                {agent.status}
+              </Badge>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span>CPU Usage</span>
-                  <span>{agent.cpu}%</span>
-                </div>
-                <Progress value={agent.cpu} className="h-2" />
-                
-                <div className="flex justify-between text-sm">
-                  <span>Memory</span>
-                  <span>{agent.memory}%</span>
-                </div>
-                <Progress value={agent.memory} className="h-2" />
-                
-                <div className="flex justify-between text-sm">
-                  <span>Network</span>
-                  <span>{agent.network}%</span>
-                </div>
-                <Progress value={agent.network} className="h-2" />
-                
-                <div className="text-xs text-muted-foreground pt-2">
-                  Last seen: {new Date(agent.lastSeen).toLocaleString()}
-                </div>
+            <CardContent className="space-y-2">
+              <p className="text-xs text-muted-foreground">Version: {agent.version}</p>
+              <p className="text-xs text-muted-foreground">Location: {agent.location}</p>
+              <p className="text-xs text-muted-foreground">Last Seen: {new Date(agent.lastSeen).toLocaleString()}</p>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <BarChart3 className="h-3 w-3" /> CPU: {agent.cpu}%
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Activity className="h-3 w-3" /> Memory: {agent.memory}%
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Globe className="h-3 w-3" /> Network: {agent.network}%
               </div>
             </CardContent>
           </Card>
@@ -541,231 +571,233 @@ const App = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Security Logs</h1>
+          <h1 className="text-3xl font-bold">Logs</h1>
           <p className="text-muted-foreground">
-            Real-time security events and threat analysis
+            Detailed log entries from all agents
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Label>Search</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search logs..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Sender</Label>
-              <Select value={senderFilter} onValueChange={setSenderFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Senders</SelectItem>
-                  {uniqueSenders.map(sender => (
-                    <SelectItem key={sender} value={sender}>{sender}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Context</Label>
-              <Select value={contextFilter} onValueChange={setContextFilter}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Contexts</SelectItem>
-                  {uniqueContexts.map(context => (
-                    <SelectItem key={context} value={context}>{context}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Risk Range: {riskFilter[0]} - {riskFilter[1]}</Label>
-              <Slider
-                value={riskFilter}
-                onValueChange={setRiskFilter}
-                max={100}
-                min={0}
-                step={1}
-                className="w-full"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Log Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Input
+          placeholder="Search logs..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+          icon={<Search className="h-4 w-4 text-muted-foreground" />}
+        />
+        <Select value={senderFilter} onValueChange={setSenderFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by Sender" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Senders</SelectItem>
+            {uniqueSenders.map(sender => (
+              <SelectItem key={sender} value={sender}>{sender}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={contextFilter} onValueChange={setContextFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Filter by Context" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Contexts</SelectItem>
+            {uniqueContexts.map(context => (
+              <SelectItem key={context} value={context}>{context}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex items-center space-x-2">
+          <Label htmlFor="risk-filter">Risk Score:</Label>
+          <Slider
+            id="risk-filter"
+            min={0}
+            max={100}
+            step={1}
+            value={riskFilter}
+            onValueChange={setRiskFilter}
+            className="w-[200px]"
+          />
+          <span className="text-sm text-muted-foreground">{riskFilter[0]} - {riskFilter[1]}</span>
+        </div>
+      </div>
 
-      {/* Logs Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Recent Events ({filteredLogs.length})</span>
-            <Button variant="outline" size="sm" onClick={fetchData}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : filteredLogs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No logs found matching your filters
-              </div>
-            ) : (
-              <ScrollArea className="h-96">
-                <div className="space-y-2">
-                  {filteredLogs.map((log, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex-shrink-0">
-                        <Badge 
-                          variant={
-                            log.risk > 80 ? 'destructive' :
-                            log.risk > 60 ? 'default' :
-                            log.risk > 30 ? 'secondary' : 'outline'
-                          }
-                        >
-                          Risk: {log.risk}
-                        </Badge>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-medium">{log.sender}</span>
-                          <span className="text-sm text-muted-foreground">•</span>
-                          <span className="text-sm text-muted-foreground">{log.context}</span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2 break-words">
-                          {log.payload}
-                        </p>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {new Date(log.timestamp).toLocaleString()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Log List */}
+      <ScrollArea className="h-[600px] w-full rounded-md border p-4">
+        <div className="space-y-4">
+          {filteredLogs.length > 0 ? (
+            filteredLogs.map(log => (
+              <Card key={log.id}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {new Date(log.timestamp).toLocaleString()}
+                  </CardTitle>
+                  <Badge variant={log.risk > 70 ? 'destructive' : log.risk > 30 ? 'warning' : 'default'}>
+                    Risk: {log.risk}
+                  </Badge>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Sender: {log.sender}</p>
+                  <p className="text-sm text-muted-foreground">Receiver: {log.receiver}</p>
+                  <p className="text-sm text-muted-foreground">Context: {log.context}</p>
+                  <p className="text-sm">Payload: {log.payload}</p>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <p className="text-muted-foreground">No logs found matching your criteria.</p>
+          )}
+        </div>
+      </ScrollArea>
     </div>
   )
 
   return (
-    <div className={`min-h-screen bg-background ${darkMode ? 'dark' : ''}`}>
+    <div className="min-h-screen bg-background font-sans antialiased flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
-          <div className="mr-4 flex">
-            <div className="mr-6 flex items-center space-x-2">
-              <Satellite className="h-6 w-6" />
-              <span className="font-bold">SentinelMesh</span>
-            </div>
+      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container flex h-14 items-center px-4">
+          <div className="mr-4 hidden md:flex items-center space-x-2">
+            <Shield className="h-6 w-6 text-primary" />
+            <span className="font-bold text-lg">SentinelMesh</span>
           </div>
-          
-          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            <div className="w-full flex-1 md:w-auto md:flex-none">
-              {/* Mobile menu button */}
-              <Button
-                variant="ghost"
-                className="mr-2 px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 md:hidden"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                <Menu className="h-6 w-6" />
-                <span className="sr-only">Toggle Menu</span>
-              </Button>
-            </div>
-            
-            <nav className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDarkMode(!darkMode)}
-              >
-                {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-              >
-                <Bell className={`h-4 w-4 ${notificationsEnabled ? 'text-primary' : 'text-muted-foreground'}`} />
-              </Button>
-              
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={autoRefresh}
-                  onCheckedChange={setAutoRefresh}
-                />
-                <span className="text-sm text-muted-foreground">Auto-refresh</span>
-              </div>
-            </nav>
+          <nav className="flex items-center space-x-6 text-sm font-medium">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:block">
+              <TabsList>
+                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+                <TabsTrigger value="agents">Agents</TabsTrigger>
+                <TabsTrigger value="logs">Logs</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </nav>
+          <div className="flex flex-1 items-center justify-end space-x-2">
+            <Switch
+              checked={darkMode}
+              onCheckedChange={setDarkMode}
+              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted-foreground"
+              thumbClassName="data-[state=checked]:bg-primary-foreground data-[state=unchecked]:bg-background"
+              aria-label="Toggle dark mode"
+            >
+              {darkMode ? <Moon className="h-4 w-4 text-primary-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
+            </Switch>
+            <Switch
+              checked={autoRefresh}
+              onCheckedChange={setAutoRefresh}
+              className="data-[state=checked]:bg-primary data-[state=unchecked]:bg-muted-foreground"
+              thumbClassName="data-[state=checked]:bg-primary-foreground data-[state=unchecked]:bg-background"
+              aria-label="Toggle auto-refresh"
+            >
+              <RefreshCw className="h-4 w-4 text-primary-foreground" />
+            </Switch>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Bell className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Switch
+                    checked={notificationsEnabled}
+                    onCheckedChange={setNotificationsEnabled}
+                    className="mr-2"
+                  />
+                  Enable Notifications
+                </DropdownMenuItem>
+                <DropdownMenuItem>New high-risk event detected.</DropdownMenuItem>
+                <DropdownMenuItem>Agent 'alpha-01' went offline.</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Settings className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem>API Keys</DropdownMenuItem>
+                <DropdownMenuItem>Logout</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              <Menu className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="container py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            <TabsTrigger value="agents">Agents</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="dashboard" className="space-y-4">
-            <Dashboard />
-          </TabsContent>
-          
-          <TabsContent value="agents" className="space-y-4">
-            <Agents />
-          </TabsContent>
-          
-          <TabsContent value="logs" className="space-y-4">
-            <Logs />
-          </TabsContent>
-          
-          <TabsContent value="analytics" className="space-y-4">
-            <AdvancedAnalytics logs={logs} agents={agents} />
-          </TabsContent>
-        </Tabs>
-      </div>
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="md:hidden bg-background border-b border-border/40 p-4"
+          >
+            <Tabs value={activeTab} onValueChange={setActiveTab} orientation="vertical">
+              <TabsList className="flex flex-col space-y-2">
+                <TabsTrigger value="dashboard" className="w-full">Dashboard</TabsTrigger>
+                <TabsTrigger value="agents" className="w-full">Agents</TabsTrigger>
+                <TabsTrigger value="logs" className="w-full">Logs</TabsTrigger>
+                <TabsTrigger value="analytics" className="w-full">Analytics</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <Toaster />
+      {/* Main Content */}
+      <main className="flex-1 container py-8 px-4">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-muted-foreground">Loading dashboard data...</p>
+          </div>
+        ) : (
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsContent value="dashboard">
+              <Dashboard />
+            </TabsContent>
+            <TabsContent value="agents">
+              <Agents />
+            </TabsContent>
+            <TabsContent value="logs">
+              <Logs />
+            </TabsContent>
+            <TabsContent value="analytics">
+              <AdvancedAnalytics logs={logs} agents={agents} />
+            </TabsContent>
+          </Tabs>
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 py-4 text-center text-sm text-muted-foreground">
+        © {new Date().getFullYear()} SentinelMesh. All rights reserved.
+      </footer>
     </div>
   )
 }
 
 export default App
+
 
