@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from models import StatsResponse
 from sqlite import get_agent_stats
-from .auth import get_current_org
+
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ stats_router = APIRouter()
 
 @stats_router.get("/stats", response_model=StatsResponse)
 async def get_statistics(
-    org: str = Depends(get_current_org)
+    org: str = "example-org" # Removed authentication
 ) -> StatsResponse:
     """
     Retrieve aggregated statistics for the authenticated organization.
@@ -29,4 +29,5 @@ async def get_statistics(
             status_code=500,
             detail=f"Failed to retrieve statistics: {str(e)}"
         )
+
 

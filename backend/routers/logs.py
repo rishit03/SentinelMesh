@@ -8,7 +8,7 @@ from fastapi import APIRouter, Request, Query, Depends, HTTPException, WebSocket
 from models import LogEntry, LogResponse, LogsResponse, AlertsResponse
 from sqlite import insert_log, get_logs
 from rules.rule_engine import check_all_rules
-from .auth import get_current_org
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ async def websocket_endpoint(websocket: WebSocket):
 @logs_router.post("/log", response_model=LogResponse)
 async def receive_log(
     request: Request,
-    org: str = Depends(get_current_org)
+    org: str = "example-org" # Removed authentication
 ) -> LogResponse:
     """
     Receive and process a log entry from an AI agent.
@@ -76,9 +76,8 @@ async def receive_log(
         )
 
 @logs_router.get("/logs", response_model=LogsResponse)
-async def get_all_logs(org: str = Depends(get_current_org)) -> LogsResponse:
-    """
-    Retrieve all logs for the authenticated organization.
+async def get_all_logs(org: str = "example-org") -> LogsResponse:
+    """Retrieve all logs for the authenticated organization.
 
     Returns all log entries regardless of risk level, useful for
     comprehensive monitoring and forensic analysis.
@@ -101,7 +100,7 @@ async def get_all_logs(org: str = Depends(get_current_org)) -> LogsResponse:
 @logs_router.get("/alerts", response_model=AlertsResponse)
 async def get_alerts(
     min_risk: int = Query(80, ge=0, le=100),
-    org: str = Depends(get_current_org)
+    org: str = "example-org" # Removed authentication
 ) -> AlertsResponse:
     """
     Retrieve high-risk alerts for the authenticated organization.
@@ -126,4 +125,6 @@ async def get_alerts(
             status_code=500,
             detail=f"Failed to retrieve alerts: {str(e)}"
         )
+
+
 

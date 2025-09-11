@@ -15,6 +15,8 @@ from models import HealthResponse, ErrorResponse
 from routers.logs import logs_router
 from routers.stats import stats_router
 
+# from routers.auth import auth_router # Removed authentication router
+
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
