@@ -172,7 +172,7 @@ const AdvancedAnalytics = ({ logs, agents }) => {
 }
 
 // Main App Content Component
-const AppContent = () => {
+const App = () => {
   const [logs, setLogs] = useState([])
   const [agents, setAgents] = useState([])
   const [loading, setLoading] = useState(true)
