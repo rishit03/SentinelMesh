@@ -73,7 +73,12 @@ import {
   Cell,
   ScatterChart,
   Scatter,
-  ComposedChart
+  ComposedChart,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from 'recharts'
 import {
   DropdownMenu,
@@ -108,6 +113,13 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.jsx'
 import { ScrollArea } from '@/components/ui/scroll-area.jsx'
 import { Toaster } from '@/components/ui/sonner.jsx'
 import { toast } from 'sonner'
+
+// Import new components
+import AnimatedBackground from '@/components/AnimatedBackground.jsx'
+import FloatingActionButton from '@/components/FloatingActionButton.jsx'
+import ParticleText from '@/components/ParticleText.jsx'
+import CommandPalette from '@/components/CommandPalette.jsx'
+import NotificationCenter from '@/components/NotificationCenter.jsx'
 
 import './App.css'
 
@@ -361,6 +373,21 @@ const MainDashboard = () => {
   const [senderFilter, setSenderFilter] = useState('all')
   const [contextFilter, setContextFilter] = useState('all')
   const [timeRange, setTimeRange] = useState('24h')
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false)
+  const [backgroundVariant, setBackgroundVariant] = useState('particles')
+
+  // Command palette shortcut
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setCommandPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Toggle dark mode
   useEffect(() => {
