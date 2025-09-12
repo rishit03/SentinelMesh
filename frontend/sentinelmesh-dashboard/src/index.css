@@ -165,15 +165,36 @@
 @layer components {
   /* Ultra Modern Glass Morphism */
   .glass {
-    @apply backdrop-blur-xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10;
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .dark .glass {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
   }
   
   .glass-card {
-    @apply backdrop-blur-xl bg-white/80 dark:bg-black/40 border border-white/20 dark:border-white/10 rounded-2xl p-6 shadow-xl;
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-xl);
+  }
+  
+  .dark .glass-card {
+    background-color: rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.1);
   }
   
   .glass-primary {
-    @apply backdrop-blur-xl bg-primary/10 border border-primary/20 rounded-2xl p-6;
+    backdrop-filter: blur(12px);
+    background-color: rgba(153, 69, 255, 0.1);
+    border: 1px solid rgba(153, 69, 255, 0.2);
+    border-radius: 1rem;
+    padding: 1.5rem;
   }
   
   /* Neon Glow Effects */
@@ -191,7 +212,10 @@
   
   /* Gradient Text Effects */
   .gradient-text {
-    @apply bg-gradient-to-r from-primary via-accent to-info bg-clip-text text-transparent;
+    background: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--info)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
   
   .gradient-text-premium {
@@ -203,8 +227,13 @@
   
   /* Modern Card Styles */
   .card-premium {
-    @apply relative overflow-hidden rounded-2xl border border-border bg-card p-6;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid hsl(var(--border));
+    background-color: hsl(var(--card));
+    padding: 1.5rem;
+    background-image: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
   }
   
   .card-premium::before {
@@ -219,16 +248,31 @@
   }
   
   .card-hover {
-    @apply transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl;
+    transition: all 300ms;
+  }
+  
+  .card-hover:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-2xl);
   }
   
   .card-glow {
-    @apply transition-all duration-300 hover:shadow-glow;
+    transition: all 300ms;
+  }
+  
+  .card-glow:hover {
+    box-shadow: var(--shadow-glow);
   }
   
   /* Premium Buttons */
   .btn-premium {
-    @apply relative overflow-hidden rounded-xl px-6 py-3 font-semibold text-white transition-all duration-300;
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    color: white;
+    transition: all 300ms;
     background: var(--gradient-primary);
     box-shadow: 0 4px 15px rgba(153,69,255,0.3);
   }
@@ -254,11 +298,27 @@
   }
   
   .btn-glass {
-    @apply backdrop-blur-xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 rounded-xl px-6 py-3 font-medium transition-all duration-300;
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 300ms;
+  }
+  
+  .dark .btn-glass {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
   }
   
   .btn-glass:hover {
-    @apply bg-white/20 dark:bg-white/10 shadow-lg;
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .dark .btn-glass:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
   
   /* Animated Backgrounds */
@@ -282,14 +342,32 @@
   
   /* Premium Badges */
   .badge-premium {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
     background: var(--gradient-primary);
     color: white;
     box-shadow: 0 2px 10px rgba(153,69,255,0.3);
   }
   
   .badge-glass {
-    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-medium backdrop-blur-xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .dark .badge-glass {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
   }
   
   /* Loading States */
@@ -328,39 +406,64 @@
   
   /* Focus Effects */
   .focus-premium {
-    @apply outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-background;
+    outline: none;
+  }
+  
+  .focus-premium:focus {
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--primary) / 0.5);
   }
   
   /* Status Indicators */
   .status-dot {
-    @apply relative inline-block h-2 w-2 rounded-full;
+    position: relative;
+    display: inline-block;
+    height: 0.5rem;
+    width: 0.5rem;
+    border-radius: 9999px;
   }
   
   .status-dot.online {
-    @apply bg-success;
+    background-color: hsl(var(--success));
     animation: pulse-glow 2s infinite;
   }
   
   .status-dot.offline {
-    @apply bg-muted;
+    background-color: hsl(var(--muted));
   }
   
   .status-dot.error {
-    @apply bg-destructive;
+    background-color: hsl(var(--destructive));
     animation: pulse-glow 1s infinite;
   }
   
   /* Interactive Elements */
   .interactive-scale {
-    @apply transition-transform duration-200 hover:scale-105 active:scale-95;
+    transition: transform 200ms;
+  }
+  
+  .interactive-scale:hover {
+    transform: scale(1.05);
+  }
+  
+  .interactive-scale:active {
+    transform: scale(0.95);
   }
   
   .interactive-lift {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+    transition: all 300ms;
+  }
+  
+  .interactive-lift:hover {
+    transform: translateY(-0.25rem);
+    box-shadow: var(--shadow-xl);
   }
   
   .interactive-glow {
-    @apply transition-all duration-300 hover:shadow-glow;
+    transition: all 300ms;
+  }
+  
+  .interactive-glow:hover {
+    box-shadow: var(--shadow-glow);
   }
 }
 
@@ -491,6 +594,9 @@
   }
   
   .text-gradient {
-    @apply bg-gradient-to-r from-primary via-accent to-info bg-clip-text text-transparent;
+    background: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--info)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
