@@ -1,336 +1,459 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
-  Satellite,
   Shield,
   Activity,
-  AlertTriangle,
+  AlertCircle,
   Users,
-  ChevronRight
+  TrendingUp,
+  TrendingDown,
+  Clock,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  BarChart3,
+  FileText,
+  Download,
+  Filter,
+  ArrowRight
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card.jsx';
-import { Badge } from '@/components/ui/badge.jsx';
-import AnimatedCounter from '../components/AnimatedCounter.jsx';
+import { Line, Bar, Pie } from 'recharts';
+import {
+  LineChart,
+  BarChart,
+  PieChart,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
+import AnimatedCounter from '@/components/AnimatedCounter';
+import StatusIndicator from '@/components/StatusIndicator';
+import { toast } from 'sonner';
 
-// Import react-grid-layout components
-import { Responsive, WidthProvider } from 'react-grid-layout';
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
+const DashboardPage = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [timeRange, setTimeRange] = useState('24h');
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [logs, setLogs] = useState([]);
+  const [agents, setAgents] = useState([]);
 
-// Import custom hook for layout persistence
-import useLayoutPersistence from '../hooks/useLayoutPersistence.js';
-
-const ResponsiveGridLayout = WidthProvider(Responsive);
-
-// Summary Widget Components (for Dashboard tab)
-const SummaryStatsWidget = ({ title, value, icon: Icon, color = 'blue', trend, subtitle, loading = false, onClick, isDragging }) => {
-  const handleClick = (e) => {
-    if (isDragging) {
-      e.stopPropagation(); // Prevent click if dragging
-      return;
+  // Fetch actual data from API
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('https://sentinelmesh-api.onrender.com/logs');
+      if (response.ok) {
+        const data = await response.json();
+        setLogs(data.logs || []);
+        
+        // Extract unique agents from logs
+        const uniqueAgents = [...new Set((data.logs || []).map(log => log.sender))].filter(Boolean);
+        setAgents(uniqueAgents);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
-    onClick();
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (autoRefresh) {
+      const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [autoRefresh]);
+
+  // Calculate actual stats from real data
+  const stats = {
+    totalLogs: logs.length,
+    activeAgents: agents.length,
+    highRiskAlerts: logs.filter(log => log.risk_score >= 80).length,
+    averageRiskScore: logs.length > 0 
+      ? (logs.reduce((sum, log) => sum + (log.risk_score || 0), 0) / logs.length).toFixed(1)
+      : 0
+  };
+
+  // Generate activity data from actual logs (last 7 hours)
+  const activityData = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
+    const hourStr = hour.getHours() + ':00';
+    const hourLogs = logs.filter(log => {
+      const logTime = new Date(log.timestamp);
+      return logTime.getHours() === hour.getHours();
+    });
+    
+    activityData.push({
+      name: hourStr,
+      logs: hourLogs.length,
+      alerts: hourLogs.filter(log => log.risk_score >= 80).length
+    });
+  }
+
+  // Calculate risk distribution from actual data
+  const riskDistribution = [
+    { 
+      name: 'Low', 
+      value: logs.filter(log => log.risk_score < 30).length,
+      fill: '#10b981' 
+    },
+    { 
+      name: 'Medium', 
+      value: logs.filter(log => log.risk_score >= 30 && log.risk_score < 60).length,
+      fill: '#f59e0b' 
+    },
+    { 
+      name: 'High', 
+      value: logs.filter(log => log.risk_score >= 60 && log.risk_score < 80).length,
+      fill: '#ef4444' 
+    },
+    { 
+      name: 'Critical', 
+      value: logs.filter(log => log.risk_score >= 80).length,
+      fill: '#dc2626' 
+    },
+  ].filter(item => item.value > 0); // Only show categories with data
+
+  // Recent activity from actual logs
+  const recentActivity = logs
+    .slice(0, 5)
+    .map(log => {
+      const timeAgo = new Date(log.timestamp);
+      const minutesAgo = Math.floor((now - timeAgo) / 60000);
+      const timeStr = minutesAgo < 60 
+        ? `${minutesAgo} min ago`
+        : `${Math.floor(minutesAgo / 60)} hour${Math.floor(minutesAgo / 60) > 1 ? 's' : ''} ago`;
+      
+      return {
+        time: timeStr,
+        event: log.message || 'Log entry',
+        type: log.risk_score >= 80 ? 'alert' : log.risk_score >= 60 ? 'warning' : 'info',
+        status: log.risk_score >= 80 ? 'critical' : log.risk_score >= 60 ? 'warning' : 'normal',
+        sender: log.sender
+      };
+    });
+
+  const COLORS = {
+    low: '#10b981',
+    medium: '#f59e0b',
+    high: '#ef4444',
+    critical: '#dc2626'
+  };
+
+  const handleRefresh = () => {
+    fetchData();
+    toast.success('Dashboard refreshed');
   };
 
   return (
-    <Card 
-      className="h-full overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200"
-      onClick={handleClick}
-    >
-      <CardContent className="p-4 h-full flex flex-col justify-between">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <div className={`p-2 rounded-lg bg-${color}-100 dark:bg-${color}-900/30`}>
-              <Icon className={`h-4 w-4 text-${color}-600 dark:text-${color}-400`} />
-            </div>
-            <h3 className="text-sm font-medium text-slate-600 dark:text-slate-300 truncate">
-              {title}
-            </h3>
-          </div>
-          <div className="flex items-center space-x-1">
-            {trend && (
-              <Badge variant={trend > 0 ? "default" : "secondary"} className="text-xs">
-                {trend > 0 ? '+' : ''}{trend}%
-              </Badge>
-            )}
-            <ChevronRight className="h-4 w-4 text-slate-400" />
-          </div>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Dashboard Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Monitor your AI agents and security metrics</p>
         </div>
         
-        <div className="flex-1 flex flex-col justify-center">
-          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-1">
-            {loading ? (
-              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-8 w-16 rounded" />
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+          <Button variant="outline" size="sm">
+            <Filter className="h-4 w-4 mr-2" />
+            {timeRange}
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card 
+          className="glass-card card-hover cursor-pointer group"
+          onClick={() => navigate('/logs')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Logs
+            </CardTitle>
+            <FileText className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              <AnimatedCounter value={stats.totalLogs} />
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              {stats.totalLogs > 0 ? (
+                <>
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <span className="text-xs text-green-500 font-medium">Active</span>
+                </>
+              ) : (
+                <span className="text-xs text-muted-foreground">No logs yet</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1 mt-3 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              <span>View Logs</span>
+              <ArrowRight className="h-3 w-3" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="glass-card card-hover cursor-pointer group"
+          onClick={() => navigate('/agents')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Active Agents
+            </CardTitle>
+            <Users className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              <AnimatedCounter value={stats.activeAgents} />
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              {stats.activeAgents > 0 ? (
+                <>
+                  <StatusIndicator status="online" />
+                  <span className="text-xs text-muted-foreground">{stats.activeAgents} agent{stats.activeAgents !== 1 ? 's' : ''} active</span>
+                </>
+              ) : (
+                <>
+                  <StatusIndicator status="offline" />
+                  <span className="text-xs text-muted-foreground">No agents active</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-1 mt-3 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              <span>Manage Agents</span>
+              <ArrowRight className="h-3 w-3" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="glass-card card-hover cursor-pointer group"
+          onClick={() => navigate('/alerts')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              High Risk Alerts
+            </CardTitle>
+            <AlertCircle className="h-4 w-4 text-destructive group-hover:scale-110 transition-transform" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              <AnimatedCounter value={stats.highRiskAlerts} />
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              {stats.highRiskAlerts > 0 ? (
+                <>
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-xs text-destructive font-medium">Needs attention</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span className="text-xs text-green-500 font-medium">All clear</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-1 mt-3 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              <span>View Alerts</span>
+              <ArrowRight className="h-3 w-3" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="glass-card card-hover cursor-pointer group"
+          onClick={() => navigate('/risk')}
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Risk Score
+            </CardTitle>
+            <Shield className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.averageRiskScore}</div>
+            <Progress value={stats.averageRiskScore} className="mt-2 h-2" />
+            <span className="text-xs text-muted-foreground mt-1">
+              {stats.averageRiskScore === 0 ? 'No data' : 
+               stats.averageRiskScore < 30 ? 'Low Risk' :
+               stats.averageRiskScore < 60 ? 'Medium Risk' :
+               stats.averageRiskScore < 80 ? 'High Risk' : 'Critical Risk'}
+            </span>
+            <div className="flex items-center gap-1 mt-3 text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+              <span>Risk Analysis</span>
+              <ArrowRight className="h-3 w-3" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Activity Chart */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Activity Timeline
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activityData.some(d => d.logs > 0) ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={activityData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.1)" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="logs" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="alerts" 
+                    stroke="hsl(var(--destructive))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--destructive))' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             ) : (
-              <AnimatedCounter value={value} />
+              <div className="h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <Activity className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground">No activity data available</p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">Logs will appear here once agents are active</p>
+                </div>
+              </div>
             )}
-          </div>
-          {subtitle && (
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {subtitle}
-            </p>
+          </CardContent>
+        </Card>
+
+        {/* Risk Distribution */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Risk Distribution
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {riskDistribution.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={riskDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => value > 0 ? `${name} (${value})` : ''}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {riskDistribution.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center">
+                <div className="text-center">
+                  <Shield className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground">No risk data available</p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">Risk distribution will appear once logs are received</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary" />
+            Recent Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentActivity.length > 0 ? (
+            <div className="space-y-4">
+              {recentActivity.map((activity, index) => (
+                <div key={index} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    {activity.type === 'alert' && <AlertCircle className="h-4 w-4 text-destructive" />}
+                    {activity.type === 'success' && <CheckCircle className="h-4 w-4 text-green-500" />}
+                    {activity.type === 'warning' && <AlertCircle className="h-4 w-4 text-yellow-500" />}
+                    {activity.type === 'info' && <Activity className="h-4 w-4 text-blue-500" />}
+                    <div>
+                      <p className="text-sm font-medium">{activity.event}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {activity.sender && `From ${activity.sender} • `}{activity.time}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant={
+                    activity.status === 'critical' ? 'destructive' : 
+                    activity.status === 'warning' ? 'outline' :
+                    activity.status === 'completed' ? 'default' : 'secondary'
+                  }>
+                    {activity.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Clock className="h-12 w-12 text-muted-foreground/30 mb-3" />
+              <p className="text-muted-foreground">No recent activity</p>
+              <p className="text-sm text-muted-foreground/70 mt-1">Activity will appear here once agents send logs</p>
+            </div>
           )}
-        </div>
-        
-        <div className="flex items-center justify-end mt-2">
-          <div className={`w-2 h-2 rounded-full bg-${color}-500`} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const SummaryContentWidget = ({ title, icon: Icon, color = 'blue', count, subtitle, loading = false, onClick, isDragging }) => {
-  const handleClick = (e) => {
-    if (isDragging) {
-      e.stopPropagation(); // Prevent click if dragging
-      return;
-    }
-    onClick();
-  };
-
-  return (
-    <Card 
-      className="h-full overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200"
-      onClick={handleClick}
-    >
-      <CardContent className="p-6 h-full flex flex-col justify-between"> {/* Main flex container */}
-        <div> {/* Top section: icon, title, subtitle, arrow */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className={`p-3 rounded-xl bg-${color}-100 dark:bg-${color}-900/30`}>
-                <Icon className={`h-6 w-6 text-${color}-600 dark:text-${color}-400`} />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                  {title}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {subtitle}
-                </p>
-              </div>
-            </div>
-            <ChevronRight className="h-5 w-5 text-slate-400" />
-          </div>
-        </div>
-        
-        <div className="flex items-end justify-between mt-auto"> {/* Bottom section: AnimatedCounter and colored dot */}
-          <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {loading ? (
-              <div className="animate-pulse bg-slate-200 dark:bg-slate-700 h-10 w-20 rounded" />
-            ) : (
-              <AnimatedCounter value={count} />
-            )}
-          </div>
-          <div className={`w-3 h-3 rounded-full bg-${color}-500`} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const DashboardPage = ({ logs = [], alerts = [], stats = {}, loading = false, onNavigateToTab }) => {
-  const handleNavigateToTab = (tab) => {
-    if (onNavigateToTab) {
-      onNavigateToTab(tab);
-    }
-  };
-
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Default layout for different breakpoints
-  const defaultLayouts = {
-    lg: [
-      { i: 'risk-level', x: 0, y: 0, w: 1, h: 1 },
-      { i: 'total-logs', x: 1, y: 0, w: 1, h: 1 },
-      { i: 'active-alerts', x: 2, y: 0, w: 1, h: 1 },
-      { i: 'active-agents', x: 3, y: 0, w: 1, h: 1 },
-      { i: 'recent-logs', x: 0, y: 1, w: 2, h: 1 },
-      { i: 'security-alerts', x: 2, y: 1, w: 2, h: 1 },
-      { i: 'agent-activity', x: 0, y: 2, w: 2, h: 1 },
-      { i: 'risk-analysis', x: 2, y: 2, w: 2, h: 1 },
-    ],
-    md: [
-      { i: 'risk-level', x: 0, y: 0, w: 2, h: 1 },
-      { i: 'total-logs', x: 2, y: 0, w: 2, h: 1 },
-      { i: 'active-alerts', x: 0, y: 1, w: 2, h: 1 },
-      { i: 'active-agents', x: 2, y: 1, w: 2, h: 1 },
-      { i: 'recent-logs', x: 0, y: 2, w: 4, h: 1 },
-      { i: 'security-alerts', x: 0, y: 3, w: 4, h: 1 },
-      { i: 'agent-activity', x: 0, y: 4, w: 4, h: 1 },
-      { i: 'risk-analysis', x: 0, y: 5, w: 4, h: 1 },
-    ],
-    sm: [
-      { i: 'risk-level', x: 0, y: 0, w: 1, h: 1 },
-      { i: 'total-logs', x: 0, y: 1, w: 1, h: 1 },
-      { i: 'active-alerts', x: 0, y: 2, w: 1, h: 1 },
-      { i: 'active-agents', x: 0, y: 3, w: 1, h: 1 },
-      { i: 'recent-logs', x: 0, y: 4, w: 1, h: 1 },
-      { i: 'security-alerts', x: 0, y: 5, w: 1, h: 1 },
-      { i: 'agent-activity', x: 0, y: 6, w: 1, h: 1 },
-      { i: 'risk-analysis', x: 0, y: 7, w: 1, h: 1 },
-    ],
-  };
-
-  const [layouts, setLayouts] = useLayoutPersistence('dashboard-layouts', defaultLayouts);
-
-  const onLayoutChange = (layout, allLayouts) => {
-    setLayouts(allLayouts);
-  };
-
-  const onDragStart = () => {
-    setIsDragging(true);
-  };
-
-  const onDragStop = () => {
-    // A small delay to ensure the click event doesn't fire immediately after drag stop
-    setTimeout(() => {
-      setIsDragging(false);
-    }, 50);
-  };
-
-  return (
-    <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center"
-      >
-        <div className="flex items-center justify-center mb-4">
-          <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full mr-4">
-            <Satellite className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
-              SentinelMesh Dashboard
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              AI Agent Security Monitoring & Risk Analysis
-            </p>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Customizable Grid Layout */}
-      <ResponsiveGridLayout
-        className="layout"
-        layouts={layouts}
-        onLayoutChange={onLayoutChange}
-        onDragStart={onDragStart}
-        onDragStop={onDragStop}
-        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-        cols={{ lg: 4, md: 4, sm: 1, xs: 1, xxs: 1 }}
-        rowHeight={150}
-        isBounded={true}
-      >
-        <div key="risk-level">
-          <SummaryStatsWidget
-            title="Risk Level"
-            value={logs.length > 0 ? Math.round(logs.reduce((sum, log) => sum + (log.risk || 0), 0) / logs.length) : 0}
-            icon={Shield}
-            color="red"
-            trend={-2}
-            subtitle="Average security risk percentage"
-            loading={loading}
-            onClick={() => handleNavigateToTab('risk')}
-            isDragging={isDragging}
-          />
-        </div>
-        
-        <div key="total-logs">
-          <SummaryStatsWidget
-            title="Total Logs"
-            value={logs?.length || 0}
-            icon={Activity}
-            color="blue"
-            trend={5}
-            loading={loading}
-            onClick={() => handleNavigateToTab('logs')}
-            isDragging={isDragging}
-          />
-        </div>
-        
-        <div key="active-alerts">
-          <SummaryStatsWidget
-            title="Active Alerts"
-            value={alerts?.length || 0}
-            icon={AlertTriangle}
-            color="red"
-            loading={loading}
-            onClick={() => handleNavigateToTab('alerts')}
-            isDragging={isDragging}
-          />
-        </div>
-        
-        <div key="active-agents">
-          <SummaryStatsWidget
-            title="Active Agents"
-            value={stats.activeAgents || 2}
-            icon={Users}
-            color="green"
-            loading={loading}
-            onClick={() => handleNavigateToTab('agents')}
-            isDragging={isDragging}
-          />
-        </div>
-
-        <div key="recent-logs">
-          <SummaryContentWidget
-            title="Recent Logs"
-            icon={Activity}
-            color="blue"
-            count={logs?.length || 0}
-            subtitle="Real-time log stream from your AI agents"
-            loading={loading}
-            onClick={() => handleNavigateToTab('logs')}
-            isDragging={isDragging}
-          />
-        </div>
-        
-        <div key="security-alerts">
-          <SummaryContentWidget
-            title="Security Alerts"
-            icon={AlertTriangle}
-            color="red"
-            count={alerts?.length || 0}
-            subtitle="High-risk events requiring attention"
-            loading={loading}
-            onClick={() => handleNavigateToTab('alerts')}
-            isDragging={isDragging}
-          />
-        </div>
-        
-        <div key="agent-activity">
-          <SummaryContentWidget
-            title="Agent Activity"
-            icon={Users}
-            color="purple"
-            count={new Set(logs.map(log => log.sender)).size}
-            subtitle="Message volume by agent"
-            loading={loading}
-            onClick={() => handleNavigateToTab('agents')}
-            isDragging={isDragging}
-          />
-        </div>
-        
-        <div key="risk-analysis">
-          <SummaryContentWidget
-            title="Risk Analysis"
-            icon={Shield}
-            color="orange"
-            count={logs.filter(log => log.risk >= 80).length}
-            subtitle="Security risk distribution and trends"
-            loading={loading}
-            onClick={() => handleNavigateToTab('risk')}
-            isDragging={isDragging}
-          />
-        </div>
-      </ResponsiveGridLayout>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
 export default DashboardPage;
-
 
