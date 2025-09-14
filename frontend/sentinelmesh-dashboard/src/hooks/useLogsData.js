@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../lib/api'; // Import the new API client
+
+const API_BASE_URL = 'https://sentinelmesh-api.onrender.com';
 
 const useLogsData = (autoRefresh = true) => {
   const [logs, setLogs] = useState([]);
@@ -9,12 +10,7 @@ const useLogsData = (autoRefresh = true) => {
 
   // WebSocket connection
   useEffect(() => {
-    // The API_BASE_URL is defined in api.js, but for WebSocket, we need to derive it
-    // from window.location or ensure it's passed. For now, let's keep it consistent
-    // with the API client's base URL logic.
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
-    const wsProtocol = API_BASE_URL.startsWith('https') ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${new URL(API_BASE_URL).host}/ws/logs`;
+    const wsUrl = API_BASE_URL.replace('https://', 'wss://').replace('http://', 'ws://') + '/ws/logs';
     
     let ws;
     let reconnectTimeout;
@@ -76,14 +72,21 @@ const useLogsData = (autoRefresh = true) => {
     try {
       setLoading(true);
       
-      // Use the new API client for fetching data
-      const [logsData, alertsData] = await Promise.all([
-        api.get('/logs'),
-        api.get('/alerts?min_risk=80')
+      // Fetch data directly from the API
+      const [logsResponse, alertsResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/logs`),
+        fetch(`${API_BASE_URL}/alerts?min_risk=80`)
       ]);
 
-      setLogs(Array.isArray(logsData.logs) ? logsData.logs : []);
-      setAlerts(Array.isArray(alertsData.alerts) ? alertsData.alerts : []);
+      if (logsResponse.ok) {
+        const logsData = await logsResponse.json();
+        setLogs(Array.isArray(logsData.logs) ? logsData.logs : []);
+      }
+      
+      if (alertsResponse.ok) {
+        const alertsData = await alertsResponse.json();
+        setAlerts(Array.isArray(alertsData.alerts) ? alertsData.alerts : []);
+      }
 
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -113,5 +116,4 @@ const useLogsData = (autoRefresh = true) => {
 };
 
 export default useLogsData;
-
 

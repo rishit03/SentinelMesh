@@ -38,44 +38,13 @@ import AnimatedCounter from '@/components/AnimatedCounter';
 import StatusIndicator from '@/components/StatusIndicator';
 import { toast } from 'sonner';
 
-const DashboardPage = () => {
+const DashboardPage = ({ logs = [], alerts = [], loading = false, onRefresh }) => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
   const [timeRange, setTimeRange] = useState('24h');
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [logs, setLogs] = useState([]);
-  const [agents, setAgents] = useState([]);
 
-  // Fetch actual data from API
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('https://sentinelmesh-api.onrender.com/logs');
-      if (response.ok) {
-        const data = await response.json();
-        setLogs(data.logs || []);
-        
-        // Extract unique agents from logs
-        const uniqueAgents = [...new Set((data.logs || []).map(log => log.sender))].filter(Boolean);
-        setAgents(uniqueAgents);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (autoRefresh) {
-      const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [autoRefresh]);
+  // Extract unique agents from logs
+  const agents = [...new Set(logs.map(log => log.sender))].filter(Boolean);
 
   // Calculate actual stats from real data
   const stats = {

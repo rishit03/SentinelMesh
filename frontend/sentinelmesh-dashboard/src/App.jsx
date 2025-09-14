@@ -847,17 +847,14 @@
 //   )
 // }
 
-// // Main App Component
-// const App = () => {
-//   // Show main dashboard directly without authentication
-//   return <MainDashboard />
-// }
 
-// export default App
+
+
+
 
 
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider } from './AuthContext';
 import DashboardPage from './pages/DashboardPage';
 import LogsPage from './pages/LogsPage';
@@ -869,47 +866,30 @@ import AlertsPage from './pages/AlertsPage';
 import Register from './Register';
 import Login from './Login';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import {
-  ChevronRight,
-  Shield,
-  Activity,
-  AlertCircle,
-  Users,
-  BarChart3,
-  Command,
-  Bell,
-  Plus,
-  Search,
-  Settings,
-  LogOut,
-  Moon,
-  Sun,
-  Menu,
-  X
-} from 'lucide-react';
+import { Command, Bell, Moon, Sun } from 'lucide-react';
 import LoadingSpinner from './components/LoadingSpinner';
-import StatusIndicator from './components/StatusIndicator';
 import { Toaster } from 'sonner';
+import { toast } from 'sonner';
 import AnimatedBackground from './components/AnimatedBackground';
 import FloatingActionButton from './components/FloatingActionButton';
 import ParticleText from './components/ParticleText';
 import CommandPalette from './components/CommandPalette';
 import NotificationCenter from './components/NotificationCenter';
 import Sidebar from './components/Sidebar';
+import useLogsData from './hooks/useLogsData';
 import './App.css';
 
 function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
-  const [notifications, setNotifications] = useState([]);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
   const [bgVariant, setBgVariant] = useState('gradient');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
+  
+  // Fetch logs data using the custom hook
+  const { logs, alerts, loading: dataLoading, isConnected, fetchData } = useLogsData(true);
 
   useEffect(() => {
     setTimeout(() => setIsLoading(false), 1000);
@@ -937,6 +917,63 @@ function AppContent() {
   const handleCommand = (command) => {
     console.log('Command executed:', command);
     // Handle command routing/actions here
+  };
+
+  // Export handlers
+  const handleExportLogs = (format) => {
+    if (!logs || logs.length === 0) {
+      toast.error('No logs to export');
+      return;
+    }
+
+    if (format === 'json') {
+      const dataStr = JSON.stringify(logs, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+      const exportFileDefaultName = `logs-${new Date().toISOString()}.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+      toast.success(`Exported ${logs.length} logs as JSON`);
+    } else if (format === 'csv') {
+      const headers = ['Timestamp', 'Sender', 'Risk Score', 'Payload'];
+      const csvContent = [
+        headers.join(','),
+        ...logs.map(log => [
+          log.timestamp || '',
+          log.sender || '',
+          log.risk_score || log.risk || 0,
+          `"${(log.payload || '').replace(/"/g, '""')}"`
+        ].join(','))
+      ].join('\n');
+      
+      const dataUri = 'data:text/csv;charset=utf-8,'+ encodeURIComponent(csvContent);
+      const exportFileDefaultName = `logs-${new Date().toISOString()}.csv`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+      toast.success(`Exported ${logs.length} logs as CSV`);
+    }
+  };
+
+  const handleExportAlerts = () => {
+    if (!alerts || alerts.length === 0) {
+      toast.error('No alerts to export');
+      return;
+    }
+
+    const dataStr = JSON.stringify(alerts, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = `alerts-${new Date().toISOString()}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    toast.success(`Exported ${alerts.length} alerts`);
   };
 
   if (isLoading) {
@@ -985,7 +1022,9 @@ function AppContent() {
                   className="relative"
                 >
                   <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                  {alerts && alerts.length > 0 && (
+                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
+                  )}
                 </Button>
                 
                 <Button
@@ -1003,12 +1042,43 @@ function AppContent() {
         {/* Main Content */}
         <main className="flex-1 relative z-10 overflow-auto">
           <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/agents" element={<AgentsPage />} />
-            <Route path="/logs" element={<LogsPage />} />
-            <Route path="/risk" element={<RiskPage />} />
-            <Route path="/alerts" element={<AlertsPage />} />
+            <Route path="/" element={
+              <DashboardPage 
+                logs={logs} 
+                alerts={alerts} 
+                loading={dataLoading}
+                onRefresh={fetchData}
+              />
+            } />
+            <Route path="/dashboard" element={
+              <Navigate to="/" replace />
+            } />
+            <Route path="/agents" element={
+              <AgentsPage 
+                logs={logs} 
+                loading={dataLoading}
+              />
+            } />
+            <Route path="/logs" element={
+              <LogsPage 
+                logs={logs} 
+                loading={dataLoading}
+                onExport={handleExportLogs}
+              />
+            } />
+            <Route path="/risk" element={
+              <RiskPage 
+                logs={logs} 
+                loading={dataLoading}
+              />
+            } />
+            <Route path="/alerts" element={
+              <AlertsPage 
+                alerts={alerts} 
+                loading={dataLoading}
+                onExport={handleExportAlerts}
+              />
+            } />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/register" element={<Register />} />
@@ -1033,7 +1103,7 @@ function AppContent() {
       <NotificationCenter
         isOpen={notificationCenterOpen}
         onClose={() => setNotificationCenterOpen(false)}
-        notifications={notifications}
+        notifications={alerts || []}
       />
       
       {/* Toast Notifications */}
